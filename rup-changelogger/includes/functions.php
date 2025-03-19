@@ -401,15 +401,27 @@ function rup_changelogger_enqueue_styles() {
 }
 add_action('wp_head', 'rup_changelogger_enqueue_styles');
 
-/*function rup_changelogger_clear_cache_via_url() {
-    if (isset($_GET['key']) && $_GET['key'] === 'YOUR_SECRET_KEY') {
-        global $wpdb;
-        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_cached_changelog_timeline_%'");
-        echo json_encode(['success' => true, 'message' => 'Changelog cache cleared!']);
-    } else {
-        echo json_encode(['success' => false, 'message' => 'Invalid key!']);
+/* Added a Filter Can be Triggered by doing the following and applying a new key
+
+add_filter('rup_changelogger_secret_key', function($key) {
+    return 'MY_NEW_SECRET_KEY';
+});
+*/
+
+function rup_changelogger_clear_cache_via_url() {
+    // Allow filtering of the secret key
+    $secret_key = apply_filters('rup_changelogger_secret_key', 'YOUR_SECRET_KEY');
+
+    if (!isset($_GET['key']) || $_GET['key'] !== $secret_key) {
+        return; // Exit early if the key is not present or incorrect
     }
-    exit;
+
+    global $wpdb;
+    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_cached_changelog_timeline_%'");
+    
+    // Return a JSON response
+    wp_send_json_success(['message' => 'Changelog cache cleared!']);
 }
-add_action('init', 'rup_changelogger_clear_cache_via_url');*/
+add_action('template_redirect', 'rup_changelogger_clear_cache_via_url');
+
 ?>

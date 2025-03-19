@@ -1,2 +1,0 @@
-# RUPChangelog
-RUP-ChangeLog

@@ -2,7 +2,8 @@
 if (!defined('ABSPATH')) {
     exit;
 }
-function fetch_changelog_data_timeline($url) {
+
+function rup_changelogger_fetch_changelog_data_timeline($url) {
     $transient_key = 'cached_changelog_timeline_' . md5($url);
 
     $cached_data = get_transient($transient_key);
@@ -41,58 +42,54 @@ function fetch_changelog_data_timeline($url) {
     // Convert to UTF-8
     $changelog_text = mb_convert_encoding($changelog_text, 'UTF-8', 'auto');
 
-    $changelog = parse_changelog_timeline($changelog_text);
+    $changelog = rup_changelogger_parse_changelog_timeline($changelog_text);
 
-    $cache_duration = apply_filters('changelog_timeline_cache_duration', 7 * DAY_IN_SECONDS);
+    $cache_duration = apply_filters('rup_changelogger_cache_duration', 7 * DAY_IN_SECONDS);
     set_transient($transient_key, $changelog, $cache_duration);
-
 
     return $changelog;
 }
 
-function parse_changelog_timeline($text) {
+function rup_changelogger_parse_changelog_timeline($text) {
     $lines = explode("\n", $text);
     $output = '<div class="changelog-timeline">';
 
     $version = '';
     $date = '';
     $entries = [];
-    $all_versions = [];
 
     foreach ($lines as $line) {
         if (preg_match('/= ([\d\.]+)(?: \((.*?)\))? =/', $line, $matches)) {
             if (!empty($entries)) {
-                $output .= format_changelog_entry_timeline($version, $date, $entries);
+                $output .= rup_changelogger_format_changelog_entry_timeline($version, $date, $entries);
                 $entries = [];
             }
             $version = $matches[1];
-            $date = isset($matches[2]) ? $matches[2] : ''; // Handles missing dates
-            $all_versions[] = $version;
+            $date = isset($matches[2]) ? $matches[2] : '';
         } elseif (preg_match('/(New|Updated|Fixed|Tweaked|Improvement|Security|Deprecated|Warning): (.+)/i', $line, $matches)) {
             $entries[] = ['type' => ucfirst(strtolower($matches[1])), 'text' => $matches[2]];
         }
     }
 
     if (!empty($entries)) {
-        $output .= format_changelog_entry_timeline($version, $date, $entries);
+        $output .= rup_changelogger_format_changelog_entry_timeline($version, $date, $entries);
     }
 
     $output .= '</div>';
     return $output;
 }
 
-function format_changelog_entry_timeline($version, $date, $entries) {
-    $type_colors = apply_filters('changelog_timeline_label_colors', [
-    'New' => '#28a745',
-    'Updated' => '#343a40',
-    'Fixed' => '#dc3545',
-    'Tweaked' => '#007bff',
-    'Improvement' => '#6f42c1',
-    'Deprecated' => '#ff5733',
-    'Security' => '#e83e8c',
-    'Warning' => '#ffc107'
+function rup_changelogger_format_changelog_entry_timeline($version, $date, $entries) {
+    $type_colors = apply_filters('rup_changelogger_label_colors', [
+        'New' => '#28a745',
+        'Updated' => '#343a40',
+        'Fixed' => '#dc3545',
+        'Tweaked' => '#007bff',
+        'Improvement' => '#6f42c1',
+        'Deprecated' => '#ff5733',
+        'Security' => '#e83e8c',
+        'Warning' => '#ffc107'
     ]);
-
 
     $output = "<div class='changelog-entry'>
         <div class='changelog-header'>
@@ -103,7 +100,7 @@ function format_changelog_entry_timeline($version, $date, $entries) {
             <ul class='changelog-items'>";
 
     foreach ($entries as $entry) {
-        $color = isset($type_colors[$entry['type']]) ? $type_colors[$entry['type']] : '#6c757d'; // Default gray
+        $color = isset($type_colors[$entry['type']]) ? $type_colors[$entry['type']] : '#6c757d';
         $label_class = 'changelog-label ' . strtolower($entry['type']);
         $output .= "<li><span class='{$label_class}'>{$entry['type']}</span> {$entry['text']}</li>";
     }
@@ -112,22 +109,17 @@ function format_changelog_entry_timeline($version, $date, $entries) {
     return $output;
 }
 
-
-// Shortcode for the changelog
-function changelog_timeline_shortcode($atts) {
+function rup_changelogger_timeline_shortcode($atts) {
     $atts = shortcode_atts(['url' => ''], $atts);
     if (empty($atts['url'])) {
         return 'No changelog URL provided.';
     }
-
-    return fetch_changelog_data_timeline($atts['url']);
+    return rup_changelogger_fetch_changelog_data_timeline($atts['url']);
 }
-add_shortcode('changelog_timeline', 'changelog_timeline_shortcode');
+add_shortcode('rup_changelogger_timeline', 'rup_changelogger_timeline_shortcode');
 
-// Add Clear Cache to Admin Toolbar
-function changelog_admin_toolbar($wp_admin_bar) {
+function rup_changelogger_admin_toolbar($wp_admin_bar) {
     if (!is_admin()) return;
-
     $args = [
         'id'    => 'clear_changelog_cache',
         'title' => 'Clear Changelog Cache',
@@ -136,21 +128,18 @@ function changelog_admin_toolbar($wp_admin_bar) {
     ];
     $wp_admin_bar->add_node($args);
 }
-add_action('admin_bar_menu', 'changelog_admin_toolbar', 100);
+add_action('admin_bar_menu', 'rup_changelogger_admin_toolbar', 100);
 
-// Clear Cache Handler
-function clear_changelog_cache() {
+function rup_changelogger_clear_cache() {
     check_admin_referer('clear_changelog_cache');
     delete_transient('cached_changelog_timeline');
     wp_redirect($_SERVER['HTTP_REFERER']);
     exit;
 }
-add_action('admin_post_clear_changelog_cache', 'clear_changelog_cache');
+add_action('admin_post_clear_changelog_cache', 'rup_changelogger_clear_cache');
 
-// Enqueue Styles
-function changelog_timeline_enqueue_styles() {
-    $custom_css = apply_filters('changelog_timeline_custom_css', '');
-
+function rup_changelogger_enqueue_styles() {
+    $custom_css = apply_filters('rup_changelogger_custom_css', '');
     echo '<style>
         .changelog-timeline {
             position: relative;
@@ -410,29 +399,17 @@ function changelog_timeline_enqueue_styles() {
 
     ' . $custom_css . '</style>';
 }
-add_action('wp_head', 'changelog_timeline_enqueue_styles');
+add_action('wp_head', 'rup_changelogger_enqueue_styles');
 
-function clear_changelog_cache_via_url() {
+/*function rup_changelogger_clear_cache_via_url() {
     if (isset($_GET['key']) && $_GET['key'] === 'YOUR_SECRET_KEY') {
         global $wpdb;
-        
-        // Delete all transients related to changelogs
         $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_cached_changelog_timeline_%'");
-        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_cached_changelog_timeline_%'");
-        
-        // Return confirmation
         echo json_encode(['success' => true, 'message' => 'Changelog cache cleared!']);
     } else {
         echo json_encode(['success' => false, 'message' => 'Invalid key!']);
     }
     exit;
 }
-add_action('init', 'clear_changelog_cache_via_url');
-
-
-
-
-
-
+add_action('init', 'rup_changelogger_clear_cache_via_url');*/
 ?>
-

@@ -132,11 +132,19 @@ add_action('admin_bar_menu', 'rup_changelogger_admin_toolbar', 100);
 
 function rup_changelogger_clear_cache() {
     check_admin_referer('clear_changelog_cache');
-    delete_transient('cached_changelog_timeline');
+
+    global $wpdb;
+
+    // Clear all transients that match the changelog pattern
+    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_cached_changelog_timeline_%'");
+    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_cached_changelog_timeline_%'");
+
+    // Redirect back with a success message
     wp_redirect($_SERVER['HTTP_REFERER']);
     exit;
 }
 add_action('admin_post_clear_changelog_cache', 'rup_changelogger_clear_cache');
+
 
 function rup_changelogger_enqueue_styles() {
     $custom_css = apply_filters('rup_changelogger_custom_css', '');
@@ -148,6 +156,13 @@ function rup_changelogger_enqueue_styles() {
             max-width: 700px;
             margin: 0 auto;
         }
+
+        @media (max-width: 768px) {
+    .changelog-timeline {
+        border-left: none;
+    }
+}
+
         
         .changelog-entry {
             position: relative;
@@ -397,6 +412,7 @@ function rup_changelogger_enqueue_styles() {
 }
 
 
+
     ' . $custom_css . '</style>';
 }
 add_action('wp_head', 'rup_changelogger_enqueue_styles');
@@ -412,16 +428,20 @@ function rup_changelogger_clear_cache_via_url() {
     // Allow filtering of the secret key
     $secret_key = apply_filters('rup_changelogger_secret_key', 'YOUR_SECRET_KEY');
 
-    if (!isset($_GET['key']) || $_GET['key'] !== $secret_key) {
-        return; // Exit early if the key is not present or incorrect
-    }
+    // Only trigger if the key is present and correct
+    if (isset($_GET['key']) && $_GET['key'] === $secret_key) {
+        global $wpdb;
 
-    global $wpdb;
-    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_cached_changelog_timeline_%'");
-    
-    // Return a JSON response
-    wp_send_json_success(['message' => 'Changelog cache cleared!']);
+        // Clear all transients that match the changelog pattern
+        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_cached_changelog_timeline_%'");
+        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_cached_changelog_timeline_%'");
+
+        // Send a JSON response and terminate the script properly
+        wp_send_json_success(['message' => 'Changelog cache cleared!']);
+        exit; // Ensure the script terminates after sending the response
+    }
 }
 add_action('template_redirect', 'rup_changelogger_clear_cache_via_url');
+
 
 ?>

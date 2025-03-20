@@ -5,7 +5,7 @@
  * Description:       A simple shortcode generation for remote text files in to changelogs
  * Requires at least: 6.5
  * Requires PHP:      8.0
- * Version:           1.01
+ * Version:           1.03
  * Author:            reallyusefulplugins.com
  * Author URI:        https://reallyusefulplugins.com
  * License:           GPL2
@@ -13,6 +13,8 @@
  * Text Domain:       rup-changelogger
  * Website:           https://reallyusefulplugins.com
  * */
+
+
 
 
 if (!defined('ABSPATH')) {

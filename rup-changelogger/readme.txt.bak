@@ -15,17 +15,13 @@ A quick and easy way to add changelog entries from a remote URL in WordPress
 == Installation ==
 1. Upload the `rup_changelogger` folder to the `/wp-content/plugins/` directory.
 2. Activate the plugin through the 'Plugins' menu in WordPress.
-3. Its now ready to use the shortcode
+3. Configure the plugin settings under the Dashboard Tabs menu in your WordPress admin area.
 
 == Frequently Asked Questions ==
 = How do I add a changelog shortcode? =
 Add a shortcode like this, this one dsplays this plugins changelog[rup_changelogger_timeline url='https://raw.githubusercontent.com/stingray82/rup-changelogs/refs/heads/main/rupchangelogger.txt']
 
 == Changelog ==
-= 1.05 (24 March 2025) =
-Tweaked: Stylesheet Filter for better override
-Tweaked: Updater Location
-
 = 1.04 (21 March 2025) =
 Tweaked: Updater Settings
 

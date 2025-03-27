@@ -51,6 +51,10 @@ function rup_changelogger_fetch_changelog_data_timeline($url) {
 }
 
 function rup_changelogger_parse_changelog_timeline($text) {
+    // Normalize line endings and trim text
+    $text = str_replace(["\r\n", "\r"], "\n", $text);
+    $text = trim($text);
+
     $lines = explode("\n", $text);
     $output = '<div class="changelog-timeline">';
 
@@ -58,16 +62,44 @@ function rup_changelogger_parse_changelog_timeline($text) {
     $date = '';
     $entries = [];
 
+    // Define type normalization for fuzzy matching
+    $type_aliases = [
+        'new' => 'New',
+        'update' => 'Updated',
+        'updated' => 'Updated',
+        'fix' => 'Fixed',
+        'fixed' => 'Fixed',
+        'tweak' => 'Tweaked',
+        'tweaked' => 'Tweaked',
+        'improve' => 'Improvement',
+        'improved' => 'Improvement',
+        'improvement' => 'Improvement',
+        'security' => 'Security',
+        'deprecated' => 'Deprecated',
+        'warn' => 'Warning',
+        'warning' => 'Warning'
+    ];
+
     foreach ($lines as $line) {
-        if (preg_match('/= ([\d\.]+)(?: \((.*?)\))? =/', $line, $matches)) {
+        // Normalize spacing and trim the line
+        $line = preg_replace('/\s+/', ' ', trim($line));
+
+        // Match version and date with flexible spacing and format
+        if (preg_match('/^(?:=|\s*)?\s*(?:Version\s*|v)?\s*([\d\.]+)\s*(?:[-\s]*\(?\s*(.*?)\s*\)?\s*)?(?:=|\s*)?$/i', $line, $matches)) {
             if (!empty($entries)) {
                 $output .= rup_changelogger_format_changelog_entry_timeline($version, $date, $entries);
                 $entries = [];
             }
             $version = $matches[1];
             $date = isset($matches[2]) ? $matches[2] : '';
-        } elseif (preg_match('/(New|Updated|Fixed|Tweaked|Improvement|Security|Deprecated|Warning): (.+)/i', $line, $matches)) {
-            $entries[] = ['type' => ucfirst(strtolower($matches[1])), 'text' => $matches[2]];
+        } elseif (preg_match('/([a-zA-Z]+):\s+(.+)/', $line, $matches)) {
+            $type = strtolower($matches[1]);
+            $text = trim($matches[2]);
+
+            // Fuzzy matching for types
+            $normalized_type = isset($type_aliases[$type]) ? $type_aliases[$type] : ucfirst($type);
+
+            $entries[] = ['type' => $normalized_type, 'text' => $text];
         }
     }
 

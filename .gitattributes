@@ -1,7 +1,6 @@
-# Ignore everything by default
+# Exclude everything
 * export-ignore
 
-# Include everything inside rup-changelogger/
-!rup-changelogger/
-!rup-changelogger/**/*
-
+# Include the folder and everything inside
+rup-changelogger/ !export-ignore
+rup-changelogger/** !export-ignore

@@ -1,5 +1,7 @@
-# Exclude everything by default from git archive
+# Ignore everything by default
 * export-ignore
 
-# Then include the contents of rup-changelogger/ explicitly
-rup-changelogger/* !export-ignore
+# Include everything inside rup-changelogger/
+!rup-changelogger/
+!rup-changelogger/**/*
+

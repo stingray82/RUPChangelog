@@ -1,0 +1,5 @@
+# Ignore everything from export (release archive)
+* export-ignore
+
+# Allow everything inside the rup-changelogger folder to be included
+!rup-changelogger/**

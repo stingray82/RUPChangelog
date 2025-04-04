@@ -1,6 +1,5 @@
-# Exclude everything
-* export-ignore
+# By default, include everything in the archive
+# (We will selectively exclude folders we don’t want)
 
-# Include the folder and everything inside
-rup-changelogger/ !export-ignore
-rup-changelogger/** !export-ignore
+deploy/ export-ignore
+working-php/ export-ignore

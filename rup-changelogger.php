@@ -72,10 +72,27 @@ function rup_changelogger_initialize_plugin_update_checker() {
     require_once $dir . 'includes/functions.php';
 }
 
-add_action( 'init', 'rup_changelogger_initialize_plugin_update_checker' );
+//add_action( 'init', 'rup_changelogger_initialize_plugin_update_checker' );
 
 
+function rup_changelogger_initialize_plugin_git_update_checker() {
+require_once 'plugin-update-checker/plugin-update-checker.php';
 
+$$myUpdateChecker = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
+    'https://github.com/stingray82/RUPChangelog/',
+    __FILE__,
+    'rup-changelogger'
+);
+
+//Set the branch that contains the stable release.
+$myUpdateChecker->setBranch('main');
+
+//Optional: If you're using a private repository, specify the access token like this:
+$myUpdateChecker->setAuthentication('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');
+
+}
+
+add_action( 'init', 'rup_changelogger_initialize_plugin_git_update_checker' );
 
 
 // Run on activation

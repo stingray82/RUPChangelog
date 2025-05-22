@@ -1,17 +1,17 @@
 <?php
 /**
- * Plugin Name:         Changelogger
- * Description:         A simple shortcode generation for remote text files in to changelogs
- * Tested up to:        6.8.1
- * Requires at least:   6.5
- * Requires PHP:        8.0
- * Version:             1.09
- * Author:              reallyusefulplugins.com
- * Author URI:          https://reallyusefulplugins.com
- * License:             GPL2
- * License URI:         https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain:         rup-changelogger
- * Website:             https://reallyusefulplugins.com
+ * Plugin Name:       Changelogger
+ * Description:       A simple shortcode generation for remote text files in to changelogs
+ * Tested up to:      6.8.1
+ * Requires at least: 6.5
+ * Requires PHP:      8.0
+ * Version:           1.09
+ * Author:            reallyusefulplugins.com
+ * Author URI:        https://reallyusefulplugins.com
+ * License:           GPL2
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain:       rup-changelogger
+ * Website:           https://reallyusefulplugins.com
  */
 
 if (!defined('ABSPATH')) {

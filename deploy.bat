@@ -5,11 +5,14 @@ REM ============================================
 SET "PLUIGN_NAME=RUP Changelogger"
 SET "PLUGIN_TAGS=Changelogger, Change log, plugins"
 SET "HEADER_SCRIPT=C:\Ignore By Avast\0. PATHED Items\Plugins\deployscripts\myplugin_headers.php"
-SET "PLUGIN_DIR=C:\Users\Nathan\Git\RUPChangelog\"
+SET "PLUGIN_DIR=C:\Users\Nathan\Git\RUPChangelog\rup-changelogger\"
 IF "%PLUGIN_DIR:~-1%"=="\" SET "PLUGIN_DIR=%PLUGIN_DIR:~0,-1%"
-SET "PLUGIN_FILE=%PLUGIN_DIR%\rup-changelogger\rup-changelogger.php"
+SET "PLUGIN_FILE=%PLUGIN_DIR%\rup-changelogger.php"
 SET "CHANGELOG_FILE=C:\Users\Nathan\Git\rup-changelogs\rupchangelogger.txt"
 SET "STATIC_FILE=static.txt"
+SET "README=%PLUGIN_DIR%\readme.txt"
+SET "TEMP_README=%PLUGIN_DIR%\readme_temp.txt"
+
 SET "DEST_DIR=D:\updater.reallyusefulplugins.com\plugin-updates\custom-packages"
 SET "DEPLOY_TARGET=private"  REM github or private
 REM GitHub settings

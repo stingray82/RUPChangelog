@@ -36,7 +36,7 @@ add_action( 'plugins_loaded', function() {
         'name'        => 'RUP ChangeLogger',         // human‐readable plugin name
         'version'     => RUP_Changelogger_VERSION, // same as the VERSION constant above
         'key'         => 'gdNFVtg8eLNWqJchJRsQh5SbjzTTVStvo',                 // your secret key for private updater
-        'server'      => 'https://updater.reallyusefulplugins.com/u/',
+        'server'      => 'https://raw.githubusercontent.com/stingray82/RUPChangelog/main/uupd/index.json',
         // 'textdomain' is omitted, so the helper will automatically use 'slug'
         //'textdomain'  => 'rup-crm-tag-mapper',           // used to translate “Check for updates”
     ];

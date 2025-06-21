@@ -1,9 +1,7 @@
 @echo off
-setlocal enabledelayedexpansion
-
-REM ─────────────────────────────────────────────────────
-REM CONFIGURATION
-REM ─────────────────────────────────────────────────────
+REM ============================================
+REM CONFIGURATION - adjust these paths as needed
+REM ============================================
 SET "PLUIGN_NAME=RUP Changelogger"
 SET "PLUGIN_TAGS=Changelogger, Change log, plugins"
 SET "HEADER_SCRIPT=C:\Ignore By Avast\0. PATHED Items\Plugins\deployscripts\myplugin_headers.php"
@@ -14,6 +12,7 @@ SET "CHANGELOG_FILE=C:\Users\Nathan\Git\rup-changelogs\rupchangelogger.txt"
 SET "STATIC_FILE=static.txt"
 SET "README=%PLUGIN_DIR%\readme.txt"
 SET "TEMP_README=%PLUGIN_DIR%\readme_temp.txt"
+
 SET "DEST_DIR="
 SET "DEPLOY_TARGET=github"  REM github or private
 
@@ -27,6 +26,7 @@ REM JSON Settings
 SET "GENERATOR_SCRIPT=C:\Ignore By Avast\0. PATHED Items\Plugins\deployscripts\generate_index.php"
 SET "REPO_ROOT=%PLUGIN_DIR%\.."
 SET "STATIC_SUBFOLDER=%REPO_ROOT:\=\\%\uupd"
+
 
 REM Script Version 1.1
 

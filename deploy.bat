@@ -13,14 +13,19 @@ SET "STATIC_FILE=static.txt"
 SET "README=%PLUGIN_DIR%\readme.txt"
 SET "TEMP_README=%PLUGIN_DIR%\readme_temp.txt"
 
-SET "DEST_DIR=D:\updater.reallyusefulplugins.com\plugin-updates\custom-packages"
-SET "DEPLOY_TARGET=private"  REM github or private
+SET "DEST_DIR="
+SET "DEPLOY_TARGET=github"  REM github or private
+
 REM GitHub settings
 SET "GITHUB_REPO=stingray82/RUPChangelog"
 SET "TOKEN_FILE=C:\Ignore By Avast\0. PATHED Items\Plugins\deployscripts\github_token.txt"
 SET /P GITHUB_TOKEN=<"%TOKEN_FILE%"
 SET "ZIP_NAME=rup-changelogger.zip"
 
+REM JSON Settings
+SET "GENERATOR_SCRIPT=C:\Ignore By Avast\0. PATHED Items\Plugins\deployscripts\generate_index.php"
+SET "REPO_ROOT=%PLUGIN_DIR%\.."
+SET "STATIC_SUBFOLDER=%REPO_ROOT:\=\\%\uupd"
 
 REM ─────────────────────────────────────────────────────
 REM VERIFY REQUIRED FILES

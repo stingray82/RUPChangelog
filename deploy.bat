@@ -27,6 +27,7 @@ SET "GENERATOR_SCRIPT=C:\Ignore By Avast\0. PATHED Items\Plugins\deployscripts\g
 SET "REPO_ROOT=%PLUGIN_DIR%\.."
 SET "STATIC_SUBFOLDER=%REPO_ROOT:\=\\%\uupd"
 
+
 REM ─────────────────────────────────────────────────────
 REM VERIFY REQUIRED FILES
 REM ─────────────────────────────────────────────────────

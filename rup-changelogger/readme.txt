@@ -4,7 +4,7 @@ Donate link: https://reallyusefulplugins.com/donate
 Tags: Changelogger, Change log, plugins
 Requires at least: 6.5
 Tested up to: 6.8.1
-Stable tag: 1.0.18
+Stable tag: 1.19.0
 Requires PHP: 8.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -24,6 +24,15 @@ A quick and easy way to add changelog entries from a remote URL in WordPress
 Add a shortcode like this, this one dsplays this plugins changelog[rup_changelogger_timeline url='https://raw.githubusercontent.com/stingray82/rup-changelogs/refs/heads/main/rupchangelogger.txt']
  
 == Changelog == 
+= 1.19 ( 21 June 2025) =
+New: Updates Now served directly from GitHub using UUPD
+
+= 1.18 ( 21 June 2025) =
+New: Updates Now served directly from GitHub using UUPD
+
+= 1.17 ( 21 June 2025) =
+New: Updates Now served directly from GitHub using UUPD
+
 = 1.16 (14 June 2025) =
 Fixed: New Updater Test
 

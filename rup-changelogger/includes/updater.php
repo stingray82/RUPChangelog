@@ -105,7 +105,7 @@ if ( ! class_exists( __NAMESPACE__ . '\UUPD_Updater_V1' ) ) {
 
     class UUPD_Updater_V1 {
 
-        const VERSION = '1.2.3'; // Change as needed
+        const VERSION = '1.2.4'; // Change as needed
 
         /** @var array Configuration settings */
         private $config;
@@ -288,86 +288,88 @@ if ( ! class_exists( __NAMESPACE__ . '\UUPD_Updater_V1' ) ) {
     return $trans;
 }
     public function theme_update( $trans ) {
-        if ( ! is_object( $trans ) || ! isset( $trans->checked ) || ! is_array( $trans->checked ) ) {
-            return $trans;
-        }
-
-        $c       = $this->config;
-        $slug    = $c['slug'];
-        $current = $trans->checked[ $slug ] ?? wp_get_theme( $slug )->get( 'Version' );
-
-        $meta = get_transient( 'upd_' . $slug );
-
-        if ( false === $meta ) {
-            if ( isset( $c['server'] ) && strpos( $c['server'], 'github.com' ) !== false ) {
-                $repo_url  = rtrim( $c['server'], '/' );
-                $cache_key = 'uupd_github_release_' . md5( $repo_url );
-                $release   = get_transient( $cache_key );
-
-                if ( false === $release ) {
-                    $api_url = str_replace( 'github.com', 'api.github.com/repos', $repo_url ) . '/releases/latest';
-                    $token   = apply_filters( 'uupd/github_token_override', $c['github_token'] ?? '', $c['slug'] );
-
-                    $headers = [ 'Accept' => 'application/vnd.github.v3+json' ];
-                    if ( $token ) $headers['Authorization'] = 'token ' . $token;
-
-                    $response = wp_remote_get( $api_url, [ 'headers' => $headers ] );
-
-                    if ( ! is_wp_error( $response ) && wp_remote_retrieve_response_code( $response ) === 200 ) {
-                        $release = json_decode( wp_remote_retrieve_body( $response ) );
-                        set_transient( $cache_key, $release, 6 * HOUR_IN_SECONDS );
-                    } else {
-                        $release = null;
-                    }
-                }
-
-                if ( isset( $release->tag_name ) ) {
-                    $meta = (object) [
-                        'version'      => ltrim( $release->tag_name, 'v' ),
-                        'download_url' => $release->zipball_url,
-                        'homepage'     => $release->html_url ?? $repo_url,
-                        'sections'     => [ 'changelog' => $release->body ?? '' ],
-                    ];
-                } else {
-                    $meta = (object) [
-                        'version'      => $c['version'],
-                        'download_url' => '',
-                        'homepage'     => $repo_url,
-                        'sections'     => [ 'changelog' => '' ],
-                    ];
-                }
-
-                set_transient( 'upd_' . $slug, $meta, 6 * HOUR_IN_SECONDS );
-            } else {
-                $this->fetch_remote();
-                $meta = get_transient( 'upd_' . $slug );
-            }
-        }
-
-        $base_info = [
-            'theme'        => $slug,
-            'url'          => $meta->homepage ?? '',
-            'requires'     => $meta->requires ?? '',
-            'requires_php' => $meta->requires_php ?? '',
-            'screenshot'   => $meta->screenshot ?? ''
-        ];
-
-        if ( ! $meta || version_compare( $meta->version ?? '0.0.0', $current, '<=' ) ) {
-            $trans->no_update[ $slug ] = (object) array_merge( $base_info, [
-                'new_version' => $current,
-                'package'     => ''
-            ] );
-            return $trans;
-        }
-
-        $trans->response[ $slug ] = (object) array_merge( $base_info, [
-            'new_version' => $meta->version ?? $current,
-            'package'     => $meta->download_url ?? ''
-        ] );
-
-        unset( $trans->no_update[ $slug ] );
+    if ( ! is_object( $trans ) || ! isset( $trans->checked ) || ! is_array( $trans->checked ) ) {
         return $trans;
     }
+
+    $c        = $this->config;
+    $slug     = $c['real_slug'] ?? $c['slug']; // Use real_slug override if set
+    $cache_id = 'upd_' . $c['slug'];           // Use actual UUPD slug for transients
+    $current  = $trans->checked[ $slug ] ?? wp_get_theme( $slug )->get( 'Version' );
+
+    $meta = get_transient( $cache_id );
+
+    if ( false === $meta ) {
+        if ( isset( $c['server'] ) && strpos( $c['server'], 'github.com' ) !== false ) {
+            $repo_url  = rtrim( $c['server'], '/' );
+            $cache_key = 'uupd_github_release_' . md5( $repo_url );
+            $release   = get_transient( $cache_key );
+
+            if ( false === $release ) {
+                $api_url = str_replace( 'github.com', 'api.github.com/repos', $repo_url ) . '/releases/latest';
+                $token   = apply_filters( 'uupd/github_token_override', $c['github_token'] ?? '', $c['slug'] );
+
+                $headers = [ 'Accept' => 'application/vnd.github.v3+json' ];
+                if ( $token ) $headers['Authorization'] = 'token ' . $token;
+
+                $response = wp_remote_get( $api_url, [ 'headers' => $headers ] );
+
+                if ( ! is_wp_error( $response ) && wp_remote_retrieve_response_code( $response ) === 200 ) {
+                    $release = json_decode( wp_remote_retrieve_body( $response ) );
+                    set_transient( $cache_key, $release, 6 * HOUR_IN_SECONDS );
+                } else {
+                    $release = null;
+                }
+            }
+
+            if ( isset( $release->tag_name ) ) {
+                $meta = (object) [
+                    'version'      => ltrim( $release->tag_name, 'v' ),
+                    'download_url' => $release->zipball_url,
+                    'homepage'     => $release->html_url ?? $repo_url,
+                    'sections'     => [ 'changelog' => $release->body ?? '' ],
+                ];
+            } else {
+                $meta = (object) [
+                    'version'      => $c['version'],
+                    'download_url' => '',
+                    'homepage'     => $repo_url,
+                    'sections'     => [ 'changelog' => '' ],
+                ];
+            }
+
+            set_transient( $cache_id, $meta, 6 * HOUR_IN_SECONDS );
+        } else {
+            $this->fetch_remote();
+            $meta = get_transient( $cache_id );
+        }
+    }
+
+    $base_info = [
+        'theme'        => $slug,
+        'url'          => $meta->homepage ?? '',
+        'requires'     => $meta->requires ?? '',
+        'requires_php' => $meta->requires_php ?? '',
+        'screenshot'   => $meta->screenshot ?? ''
+    ];
+
+    if ( ! $meta || version_compare( $meta->version ?? '0.0.0', $current, '<=' ) ) {
+        $trans->no_update[ $slug ] = (object) array_merge( $base_info, [
+            'new_version' => $current,
+            'package'     => ''
+        ] );
+        return $trans;
+    }
+
+    $trans->response[ $slug ] = array_merge( $base_info, [
+        'new_version' => $meta->version ?? $current,
+        'package'     => $meta->download_url ?? ''
+    ] );
+
+    unset( $trans->no_update[ $slug ] );
+    return $trans;
+}
+
         /** Provide plugin information for the details popup. */
         public function plugin_info( $res, $action, $args ) {
             $c = $this->config;
@@ -414,7 +416,9 @@ if ( ! class_exists( __NAMESPACE__ . '\UUPD_Updater_V1' ) ) {
         /** Provide theme information for the details popup. */
         public function theme_info( $res, $action, $args ) {
             $c = $this->config;
-            if ( 'theme_information' !== $action || $args->slug !== $c['slug'] ) {
+            $slug = $c['real_slug'] ?? $c['slug'];
+            
+            if ( 'theme_information' !== $action || $args->slug !== $slug ) {
                 return $res;
             }
 
@@ -422,7 +426,6 @@ if ( ! class_exists( __NAMESPACE__ . '\UUPD_Updater_V1' ) ) {
             if ( ! $meta ) {
                 return $res;
             }
-
             // Safely extract changelog HTML
             if ( isset( $meta->changelog_html ) ) {
                 $changelog = $meta->changelog_html;
@@ -440,7 +443,7 @@ if ( ! class_exists( __NAMESPACE__ . '\UUPD_Updater_V1' ) ) {
 
             return (object) [
                 'name'          => $c['name'],
-                'slug'          => $c['slug'],
+                'slug'          => $c['real_slug'] ?? $c['slug'],
                 'version'       => $meta->version ?? '',
                 'tested'        => $meta->tested ?? '',
                 'requires'      => $meta->min_wp_version ?? '',
@@ -468,33 +471,35 @@ if ( ! class_exists( __NAMESPACE__ . '\UUPD_Updater_V1' ) ) {
             new self( $config );
 
             // 2) Add the “Check for updates” link under the plugin row:
-            $our_file   = $config['plugin_file'];   // e.g. "simply-static-export-notify/simply-static-export-notify.php"
-            $slug       = $config['slug'];          // e.g. "simply-static-export-notify"
+            $our_file   = $config['plugin_file'] ?? null;
+            $slug       = $config['slug'];
             $textdomain = ! empty( $config['textdomain'] ) ? $config['textdomain'] : $slug;
+            // Only register plugin row meta for plugins, not themes
+            if ( $our_file ) {
+                add_filter(
+                    'plugin_row_meta',
+                    function( array $links, string $file, array $plugin_data ) use ( $our_file, $slug, $textdomain ) {
+                        if ( $file === $our_file ) {
+                            $nonce     = wp_create_nonce( 'uupd_manual_check_' . $slug );
+                            $check_url = admin_url( sprintf(
+                                'admin.php?action=uupd_manual_check&slug=%s&_wpnonce=%s',
+                                rawurlencode( $slug ),
+                                $nonce
+                            ) );
 
-            add_filter(
-                'plugin_row_meta',
-                function( array $links, string $file, array $plugin_data ) use ( $our_file, $slug, $textdomain ) {      
+                            $links[] = sprintf(
+                                '<a href="%s">%s</a>',
+                                esc_url( $check_url ),
+                                esc_html__( 'Check for updates', $textdomain )
+                            );
+                        }
+                        return $links;
+                    },
+                    10,
+                    3
+                );
+            }
 
-                    if ( $file === $our_file ) {
-                        $nonce     = wp_create_nonce( 'uupd_manual_check_' . $slug );
-                        $check_url = admin_url( sprintf(
-                            'admin.php?action=uupd_manual_check&slug=%s&_wpnonce=%s',
-                            rawurlencode( $slug ),
-                            $nonce
-                        ) );
-
-                        $links[] = sprintf(
-                            '<a href="%s">%s</a>',
-                            esc_url( $check_url ),
-                            esc_html__( 'Check for updates', $textdomain )
-                        );
-                    }
-                    return $links;
-                },
-                10,
-                3 // Must request all three args: ($links, $file, $plugin_data).
-            );
 
             // 3) Hook up the manual‐check listener:
             add_action( 'admin_action_uupd_manual_check', function() use ( $slug, $config ) {

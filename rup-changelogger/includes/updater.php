@@ -51,7 +51,7 @@
  *            // 'textdomain' => 'my-plugin-textdomain',         // optional, defaults to 'slug'
  *        ];
  *
- *        \UUPD\V1\UUPD_Updater_V1::register( $updater_config );
+ *        \RUP\Updater\Updater_V1::register( $updater_config );
  *    }, 1 );
  *
  * ╰─────────────────────────────────────────────────────────────────────────────╯
@@ -76,7 +76,7 @@
  *        ];
  *
  *        add_action( 'admin_init', function() use ( $updater_config ) {
- *            \UUPD\V1\UUPD_Updater_V1::register( $updater_config );
+ *            \RUP\Updater\Updater_V1::register( $updater_config );
  *        } );
  *    } );
  *
@@ -93,17 +93,17 @@
  * What This Does:
  *  - Detects updates from GitHub or private JSON endpoints
  *  - Auto-selects GitHub logic if `server` contains "github.com"
- *  - Caches metadata in `upd_{slug}` for 6 hour
+ *  - Caches metadata in `rup_{slug}` for 6 hour
  *  - Injects WordPress update data via native transients
  *  - Adds “View details” + “Check for updates” under plugin/theme row
  *  - Works seamlessly with `wp_update_plugins()` or `wp_update_themes()`
  */
 
-namespace UUPD\V1;
+namespace RUP\Updater;
 
-if ( ! class_exists( __NAMESPACE__ . '\UUPD_Updater_V1' ) ) {
+if ( ! class_exists( __NAMESPACE__ . '\Updater_V1' ) ) {
 
-    class UUPD_Updater_V1 {
+    class Updater_V1 {
 
         const VERSION = '1.2.4'; // Change as needed
 
@@ -124,7 +124,7 @@ if ( ! class_exists( __NAMESPACE__ . '\UUPD_Updater_V1' ) ) {
          */
         public function __construct( array $config ) {
             $this->config = $config;
-            $this->log( "✓ Using UUPD_Updater_V1 version " . self::VERSION );
+            $this->log( "✓ Using Updater_V1 version " . self::VERSION );
             $this->register_hooks();
         }
 
@@ -174,7 +174,7 @@ if ( ! class_exists( __NAMESPACE__ . '\UUPD_Updater_V1' ) ) {
                 return $this->log( '✗ JSON decode failed' );
             }
 
-            set_transient( 'upd_' . $c['slug'], $meta, 6 * HOUR_IN_SECONDS );
+            set_transient( 'rup_' . $c['slug'], $meta, 6 * HOUR_IN_SECONDS );
             $this->log( "✓ Cached metadata '{$c['slug']}' → v" . ( $meta->version ?? 'unknown' ) );
         }
 
@@ -189,12 +189,12 @@ if ( ! class_exists( __NAMESPACE__ . '\UUPD_Updater_V1' ) ) {
     $this->log( "→ Plugin-update hook for '{$c['slug']}'" );
 
     $current = $trans->checked[ $file ] ?? $c['version'];
-    $meta    = get_transient( 'upd_' . $c['slug'] );
+    $meta    = get_transient( 'rup_' . $c['slug'] );
 
     if ( false === $meta ) {
         if ( isset( $c['server'] ) && strpos( $c['server'], 'github.com' ) !== false ) {
             $repo_url  = rtrim( $c['server'], '/' );
-            $cache_key = 'uupd_github_release_' . md5( $repo_url );
+            $cache_key = 'urup_github_release_' . md5( $repo_url );
             $release   = get_transient( $cache_key );
 
             if ( false === $release ) {
@@ -241,10 +241,10 @@ if ( ! class_exists( __NAMESPACE__ . '\UUPD_Updater_V1' ) ) {
                 ];
             }
 
-            set_transient( 'upd_' . $c['slug'], $meta, 6 * HOUR_IN_SECONDS );
+            set_transient( 'rup_' . $c['slug'], $meta, 6 * HOUR_IN_SECONDS );
         } else {
             $this->fetch_remote();
-            $meta = get_transient( 'upd_' . $c['slug'] );
+            $meta = get_transient( 'rup_' . $c['slug'] );
         }
     }
 
@@ -294,7 +294,7 @@ if ( ! class_exists( __NAMESPACE__ . '\UUPD_Updater_V1' ) ) {
 
     $c        = $this->config;
     $slug     = $c['real_slug'] ?? $c['slug']; // Use real_slug override if set
-    $cache_id = 'upd_' . $c['slug'];           // Use actual UUPD slug for transients
+    $cache_id = 'rup_' . $c['slug'];           // Use actual UUPD slug for transients
     $current  = $trans->checked[ $slug ] ?? wp_get_theme( $slug )->get( 'Version' );
 
     $meta = get_transient( $cache_id );
@@ -302,7 +302,7 @@ if ( ! class_exists( __NAMESPACE__ . '\UUPD_Updater_V1' ) ) {
     if ( false === $meta ) {
         if ( isset( $c['server'] ) && strpos( $c['server'], 'github.com' ) !== false ) {
             $repo_url  = rtrim( $c['server'], '/' );
-            $cache_key = 'uupd_github_release_' . md5( $repo_url );
+            $cache_key = 'urup_github_release_' . md5( $repo_url );
             $release   = get_transient( $cache_key );
 
             if ( false === $release ) {
@@ -377,7 +377,7 @@ if ( ! class_exists( __NAMESPACE__ . '\UUPD_Updater_V1' ) ) {
                 return $res;
             }
 
-            $meta = get_transient( 'upd_' . $c['slug'] );
+            $meta = get_transient( 'rup_' . $c['slug'] );
             if ( ! $meta ) {
                 return $res;
             }
@@ -422,7 +422,7 @@ if ( ! class_exists( __NAMESPACE__ . '\UUPD_Updater_V1' ) ) {
                 return $res;
             }
 
-            $meta = get_transient( 'upd_' . $c['slug'] );
+            $meta = get_transient( 'rup_' . $c['slug'] );
             if ( ! $meta ) {
                 return $res;
             }
@@ -464,7 +464,7 @@ if ( ! class_exists( __NAMESPACE__ . '\UUPD_Updater_V1' ) ) {
         /**
          * NEW STATIC HELPER: register everything (was the global function before).
          *
-         * @param array $config  Same structure you passed to the old uupd_register_updater_and_manual_check().
+         * @param array $config  Same structure you passed to the old urup_register_updater_and_manual_check().
          */
         public static function register( array $config ) {
             // 1) Instantiate the updater class:
@@ -480,9 +480,9 @@ if ( ! class_exists( __NAMESPACE__ . '\UUPD_Updater_V1' ) ) {
                     'plugin_row_meta',
                     function( array $links, string $file, array $plugin_data ) use ( $our_file, $slug, $textdomain ) {
                         if ( $file === $our_file ) {
-                            $nonce     = wp_create_nonce( 'uupd_manual_check_' . $slug );
+                            $nonce     = wp_create_nonce( 'urup_manual_check_' . $slug );
                             $check_url = admin_url( sprintf(
-                                'admin.php?action=uupd_manual_check&slug=%s&_wpnonce=%s',
+                                'admin.php?action=urup_manual_check&slug=%s&_wpnonce=%s',
                                 rawurlencode( $slug ),
                                 $nonce
                             ) );
@@ -502,7 +502,7 @@ if ( ! class_exists( __NAMESPACE__ . '\UUPD_Updater_V1' ) ) {
 
 
             // 3) Hook up the manual‐check listener:
-            add_action( 'admin_action_uupd_manual_check', function() use ( $slug, $config ) {
+            add_action( 'admin_action_urup_manual_check', function() use ( $slug, $config ) {
             // 1) Grab the requested slug and normalize it.
             $request_slug = isset( $_REQUEST['slug'] ) ? sanitize_key( wp_unslash( $_REQUEST['slug'] ) ) : '';
 
@@ -518,18 +518,18 @@ if ( ! class_exists( __NAMESPACE__ . '\UUPD_Updater_V1' ) ) {
 
             // 4) Verify the nonce for this slug.
             $nonce     = isset( $_REQUEST['_wpnonce'] ) ? wp_unslash( $_REQUEST['_wpnonce'] ) : '';
-            $checkname = 'uupd_manual_check_' . $slug;
+            $checkname = 'urup_manual_check_' . $slug;
             if ( ! wp_verify_nonce( $nonce, $checkname ) ) {
                 wp_die( __( 'Security check failed.' ) );
             }
 
             // 5) It’s our plugin’s “manual check,” so clear the transient and force WP to fetch again.
-            delete_transient( 'upd_' . $slug );
+            delete_transient( 'rup_' . $slug );
 
             //ALSO clear GitHub release cache if using GitHub
             if ( isset( $config['server'] ) && strpos( $config['server'], 'github.com' ) !== false ) {
                 $repo_url  = rtrim( $config['server'], '/' );
-                $gh_key    = 'uupd_github_release_' . md5( $repo_url );
+                $gh_key    = 'urup_github_release_' . md5( $repo_url );
                 delete_transient( $gh_key );
             }
 

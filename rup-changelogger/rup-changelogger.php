@@ -5,7 +5,7 @@
  * Tested up to:      6.8.1
  * Requires at least: 6.5
  * Requires PHP:      8.0
- * Version:           1.20.3
+ * Version:           1.20.4
  * Author:            reallyusefulplugins.com
  * Author URI:        https://reallyusefulplugins.com
  * License:           GPL2
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
     exit; // Prevent direct access
 }
 
-define('RUP_Changelogger_VERSION', '1.20.3');
+define('RUP_Changelogger_VERSION', '1.20.4');
 
 // Include functions
  require_once __DIR__ . '/includes/functions.php';
@@ -44,7 +44,6 @@ add_action( 'plugins_loaded', function() {
     ];
 
     // 3) Call the helper in the UUPD\V1 namespace:
-    \UUPD\V1\UUPD_Updater_V1::register( $updater_config );
     \RUP\Updater\Updater_V1::register( $updater_config );
 
 }, 1 );

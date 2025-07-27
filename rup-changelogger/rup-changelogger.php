@@ -2,10 +2,10 @@
 /**
  * Plugin Name:       Changelogger
  * Description:       A simple shortcode generation for remote text files in to changelogs
- * Tested up to:      6.8.1
+ * Tested up to:      6.8.2
  * Requires at least: 6.5
  * Requires PHP:      8.0
- * Version:           1.22
+ * Version:           1.2.3
  * Author:            reallyusefulplugins.com
  * Author URI:        https://reallyusefulplugins.com
  * License:           GPL2
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
     exit; // Prevent direct access
 }
 
-define('RUP_Changelogger_VERSION', '1.22');
+define('RUP_Changelogger_VERSION', '1.2.3');
 
 // Include functions
  require_once __DIR__ . '/includes/functions.php';
@@ -28,7 +28,7 @@ define('RUP_Changelogger_VERSION', '1.22');
 // ──────────────────────────────────────────────────────────────────────────
 add_action( 'plugins_loaded', function() {
     // 1) Load our universal drop-in. Because that file begins with "namespace UUPD\V1;",
-    //    both the class and the helper live under UUPD\V1.
+    //    both the class and the helper live under UUPD\V1.    
     require_once __DIR__ . '/includes/updater.php';
 
     // 2) Build a single $updater_config array:
@@ -46,7 +46,7 @@ add_action( 'plugins_loaded', function() {
     // 3) Call the helper in the UUPD\V1 namespace:
     \RUP\Updater\Updater_V1::register( $updater_config );
 
-}, 1 );
+}, 20 );
 
 
 // Run on activation

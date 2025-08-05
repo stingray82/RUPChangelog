@@ -5,7 +5,7 @@
  * Tested up to:      6.8.2
  * Requires at least: 6.5
  * Requires PHP:      8.0
- * Version:           1.23.0
+ * Version:           1.23.1
  * Author:            reallyusefulplugins.com
  * Author URI:        https://reallyusefulplugins.com
  * License:           GPL2
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
     exit; // Prevent direct access
 }
 
-define('RUP_Changelogger_VERSION', '1.23.0');
+define('RUP_Changelogger_VERSION', '1.23.1');
 
 // Include functions
  require_once __DIR__ . '/includes/functions.php';
@@ -60,3 +60,18 @@ function rup_changelogger_rup_changelogger_deactivate() {
     delete_option('rup_changelogger_rup_changelogger_activated');
 }
 register_deactivation_hook(__FILE__, 'rup_changelogger_rup_changelogger_deactivate');
+
+
+// MainWP Icon Filter
+/*
+add_filter('mainwp_child_stats_get_plugin_info', function($info, $slug) {
+
+    if ('rup-changelogger/rup-changelogger.php' === $slug) {
+        $info['icon'] = 'https://raw.githubusercontent.com/stingray82/RUPChangelog/main/uupd/icon-128.png'; // Supported types: jpeg, jpg, gif, ico, png
+    }
+
+    return $info;
+
+}, 10, 2); 
+
+*/

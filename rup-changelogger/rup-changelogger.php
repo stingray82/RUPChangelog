@@ -63,7 +63,7 @@ register_deactivation_hook(__FILE__, 'rup_changelogger_rup_changelogger_deactiva
 
 
 // MainWP Icon Filter
-/*
+
 add_filter('mainwp_child_stats_get_plugin_info', function($info, $slug) {
 
     if ('rup-changelogger/rup-changelogger.php' === $slug) {
@@ -73,5 +73,3 @@ add_filter('mainwp_child_stats_get_plugin_info', function($info, $slug) {
     return $info;
 
 }, 10, 2); 
-
-*/

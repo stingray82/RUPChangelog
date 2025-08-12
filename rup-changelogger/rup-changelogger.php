@@ -5,7 +5,7 @@
  * Tested up to:      6.8.2
  * Requires at least: 6.5
  * Requires PHP:      8.0
- * Version:           1.23.1
+ * Version:           1.23.2
  * Author:            reallyusefulplugins.com
  * Author URI:        https://reallyusefulplugins.com
  * License:           GPL2
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
     exit; // Prevent direct access
 }
 
-define('RUP_Changelogger_VERSION', '1.23.1');
+define('RUP_Changelogger_VERSION', '1.23.2');
 
 // Include functions
  require_once __DIR__ . '/includes/functions.php';

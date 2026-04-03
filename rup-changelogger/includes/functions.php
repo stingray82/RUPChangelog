@@ -91,7 +91,7 @@ function rup_changelogger_build_cache_key($url, $atts = []) {
  * 1.0.0-alpha+build
  */
 function rup_changelogger_get_version_pattern() {
-    return '(v?\d+(?:\.\d+)*(?:[-._]?(?:alpha|beta|rc|pre|preview|dev|canary|nightly)[-._]?[a-z0-9]*)?(?:\+[a-z0-9.\-_]+)?)';
+    return 'v?\d+(?:\.\d+)*(?:[-._]?(?:alpha|beta|rc|pre|preview|dev|canary|nightly)[-._]?[a-z0-9]*)?(?:\+[a-z0-9.\-_]+)?';
 }
 
 /**
@@ -209,15 +209,49 @@ function rup_changelogger_parse_plain_changelog($text) {
     $version_pattern = rup_changelogger_get_version_pattern();
 
     foreach ($lines as $line) {
-        $line = preg_replace('/\s+/', ' ', trim($line));
+        $line = trim($line);
 
         if ($line === '') {
             continue;
         }
 
-        $version_regex = '/^(?:=|\s*)?\s*(?:Version\s*|version\s*|Release\s*|release\s*|v)?\s*' . $version_pattern . '(?:\s+|\s*[-–]\s*|\s*\(\s*)(.*?)\s*(?:\)|\s*)\s*(?:=|\s*)?$/i';
+        $normalized_line = preg_replace('/\s+/', ' ', $line);
 
-        if (preg_match($version_regex, $line, $matches)) {
+        $matched_version = false;
+        $possible_version = '';
+        $possible_date = '';
+
+        // = 1.20 (05 July 2025) =
+        $regex_paren = '/^=\s*(' . $version_pattern . ')\s*\(\s*(.*?)\s*\)\s*=$/i';
+
+        // = 1.21 06 July 2025 =
+        $regex_plain = '/^=\s*(' . $version_pattern . ')\s+(.+?)\s*=$/i';
+
+        // Version 1.3.0-alpha (3 April 2026)
+        // Version 1.3.0-alpha 3 April 2026
+        $regex_word = '/^(?:Version|version|Release|release)\s+(' . $version_pattern . ')(?:\s*\(\s*(.*?)\s*\)|\s+(.+))?$/i';
+
+        if (preg_match($regex_paren, $normalized_line, $matches)) {
+            $possible_version = trim($matches[1]);
+            $possible_date    = trim($matches[2]);
+            $matched_version  = true;
+        } elseif (preg_match($regex_plain, $normalized_line, $matches)) {
+            $possible_version = trim($matches[1]);
+            $possible_date    = trim($matches[2]);
+            $matched_version  = true;
+        } elseif (preg_match($regex_word, $normalized_line, $matches)) {
+            $possible_version = trim($matches[1]);
+
+            if (!empty($matches[2])) {
+                $possible_date = trim($matches[2]);
+            } elseif (!empty($matches[3])) {
+                $possible_date = trim($matches[3]);
+            }
+
+            $matched_version = true;
+        }
+
+        if ($matched_version) {
             if (!empty($current_version) || !empty($current_entries)) {
                 $versions[] = [
                     'version' => $current_version,
@@ -226,13 +260,13 @@ function rup_changelogger_parse_plain_changelog($text) {
                 ];
             }
 
-            $current_version = isset($matches[1]) ? trim($matches[1]) : '';
-            $current_date    = isset($matches[2]) ? trim($matches[2]) : '';
+            $current_version = $possible_version;
+            $current_date    = $possible_date;
             $current_entries = [];
             continue;
         }
 
-        if (preg_match('/^([a-zA-Z\s]+):\s+(.+)$/', $line, $matches)) {
+        if (preg_match('/^([a-zA-Z\s]+):\s+(.+)$/', $normalized_line, $matches)) {
             $raw_type   = strtolower(trim($matches[1]));
             $entry_text = trim($matches[2]);
 
@@ -255,7 +289,6 @@ function rup_changelogger_parse_plain_changelog($text) {
 
     return apply_filters('rup_changelogger_parsed_entries', $versions, $text);
 }
-
 /**
  * -------------------------------------------------------
  * Markdown parser
@@ -653,7 +686,7 @@ function rup_changelogger_enqueue_styles() {
         .changelog-timeline {
             position: relative;
             border-left: 3px solid #ddd;
-            padding-left: 55px;
+            padding-left: 90px;
         }
 
         .changelog-entry {
@@ -678,9 +711,12 @@ function rup_changelogger_enqueue_styles() {
             padding: 6px 12px;
             border-radius: 5px;
             min-width: 60px;
+            max-width: 180px;
+            width: max-content;
             text-align: center;
+            white-space: nowrap;
             position: absolute;
-            left: -85px;
+            left: -140px;
             top: 50%;
             transform: translateY(-50%);
         }
@@ -818,6 +854,9 @@ function rup_changelogger_enqueue_styles() {
             transform: none;
             left: auto;
             top: auto;
+            max-width: 100%;
+            width: auto;
+            white-space: normal;
         }
 
         .rup-changelogger.layout-cards .changelog-meta,
@@ -854,6 +893,9 @@ function rup_changelogger_enqueue_styles() {
             font-size: 14px;
             padding: 5px 10px;
             min-width: auto;
+            max-width: 100%;
+            width: auto;
+            white-space: normal;
         }
 
         .rup-changelogger.layout-compact .changelog-date {
@@ -892,6 +934,9 @@ function rup_changelogger_enqueue_styles() {
                 transform: none;
                 left: auto;
                 top: auto;
+                max-width: 100%;
+                width: auto;
+                white-space: normal;
             }
 
             .changelog-date {

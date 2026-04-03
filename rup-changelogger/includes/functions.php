@@ -194,7 +194,6 @@ function rup_changelogger_looks_like_markdown($text) {
  * Plain text parser
  * -------------------------------------------------------
  */
-
 function rup_changelogger_parse_plain_changelog($text) {
     $text = str_replace(["\r\n", "\r"], "\n", trim($text));
     $lines = explode("\n", $text);
@@ -217,38 +216,45 @@ function rup_changelogger_parse_plain_changelog($text) {
 
         $normalized_line = preg_replace('/\s+/', ' ', $line);
 
-        $matched_version = false;
         $possible_version = '';
         $possible_date = '';
+        $matched_version = false;
 
-        // = 1.20 (05 July 2025) =
-        $regex_paren = '/^=\s*(' . $version_pattern . ')\s*\(\s*(.*?)\s*\)\s*=$/i';
-
-        // = 1.21 06 July 2025 =
-        $regex_plain = '/^=\s*(' . $version_pattern . ')\s+(.+?)\s*=$/i';
-
-        // Version 1.3.0-alpha (3 April 2026)
-        // Version 1.3.0-alpha 3 April 2026
-        $regex_word = '/^(?:Version|version|Release|release)\s+(' . $version_pattern . ')(?:\s*\(\s*(.*?)\s*\)|\s+(.+))?$/i';
-
-        if (preg_match($regex_paren, $normalized_line, $matches)) {
-            $possible_version = trim($matches[1]);
-            $possible_date    = trim($matches[2]);
+        // 1) = 1.20 (05 July 2025) =
+        if (preg_match('/^=\s*(' . $version_pattern . ')\s*\(\s*(.+?)\s*\)\s*=$/i', $normalized_line, $m)) {
+            $possible_version = trim($m[1]);
+            $possible_date    = trim($m[2]);
             $matched_version  = true;
-        } elseif (preg_match($regex_plain, $normalized_line, $matches)) {
-            $possible_version = trim($matches[1]);
-            $possible_date    = trim($matches[2]);
+        }
+        // 2) = 1.21 06 July 2025 =
+        elseif (preg_match('/^=\s*(' . $version_pattern . ')\s+(\d{1,2}\s+[A-Za-z]+\s+\d{4})\s*=$/i', $normalized_line, $m)) {
+            $possible_version = trim($m[1]);
+            $possible_date    = trim($m[2]);
             $matched_version  = true;
-        } elseif (preg_match($regex_word, $normalized_line, $matches)) {
-            $possible_version = trim($matches[1]);
-
-            if (!empty($matches[2])) {
-                $possible_date = trim($matches[2]);
-            } elseif (!empty($matches[3])) {
-                $possible_date = trim($matches[3]);
-            }
-
-            $matched_version = true;
+        }
+        // 3) = 2.8.3 =
+        elseif (preg_match('/^=\s*(' . $version_pattern . ')\s*=$/i', $normalized_line, $m)) {
+            $possible_version = trim($m[1]);
+            $possible_date    = '';
+            $matched_version  = true;
+        }
+        // 4) Version 1.3.0-alpha (3 April 2026)
+        elseif (preg_match('/^(?:Version|version|Release|release)\s+(' . $version_pattern . ')\s*\(\s*(.+?)\s*\)$/i', $normalized_line, $m)) {
+            $possible_version = trim($m[1]);
+            $possible_date    = trim($m[2]);
+            $matched_version  = true;
+        }
+        // 5) Version 1.3.0-dev 3 April 2026
+        elseif (preg_match('/^(?:Version|version|Release|release)\s+(' . $version_pattern . ')\s+(\d{1,2}\s+[A-Za-z]+\s+\d{4})$/i', $normalized_line, $m)) {
+            $possible_version = trim($m[1]);
+            $possible_date    = trim($m[2]);
+            $matched_version  = true;
+        }
+        // 6) Version 2.8.2
+        elseif (preg_match('/^(?:Version|version|Release|release)\s+(' . $version_pattern . ')$/i', $normalized_line, $m)) {
+            $possible_version = trim($m[1]);
+            $possible_date    = '';
+            $matched_version  = true;
         }
 
         if ($matched_version) {
@@ -289,6 +295,10 @@ function rup_changelogger_parse_plain_changelog($text) {
 
     return apply_filters('rup_changelogger_parsed_entries', $versions, $text);
 }
+
+
+
+
 /**
  * -------------------------------------------------------
  * Markdown parser
@@ -318,55 +328,70 @@ function rup_changelogger_parse_markdown_changelog($text) {
 
         $normalized_line = preg_replace('/\s+/', ' ', $line);
 
-        $matched_version = false;
-        $possible_version = '';
-        $possible_date = '';
+        // Markdown version header
+        if (preg_match('/^##\s+(.+)$/', $normalized_line, $matches)) {
+            $header = trim($matches[1]);
 
-        // ## 2.0.0 - 15 April 2026
-        $regex_dash = '/^##\s+(?:Version\s+|Release\s+)?(' . $version_pattern . ')\s*[-–]\s*(.+)$/i';
+            // Remove optional leading words
+            $header = preg_replace('/^(Version|Release)\s+/i', '', $header);
 
-        // ## 2.0.0 (15 April 2026)
-        $regex_paren = '/^##\s+(?:Version\s+|Release\s+)?(' . $version_pattern . ')\s*\(\s*(.*?)\s*\)$/i';
+            $possible_version = '';
+            $possible_date = '';
+            $matched_version = false;
 
-        // ## 2.0.0 15 April 2026
-        $regex_plain = '/^##\s+(?:Version\s+|Release\s+)?(' . $version_pattern . ')\s+(.+)$/i';
-
-        if (preg_match($regex_dash, $normalized_line, $matches)) {
-            $possible_version = trim($matches[1]);
-            $possible_date    = trim($matches[2]);
-            $matched_version  = true;
-        } elseif (preg_match($regex_paren, $normalized_line, $matches)) {
-            $possible_version = trim($matches[1]);
-            $possible_date    = trim($matches[2]);
-            $matched_version  = true;
-        } elseif (preg_match($regex_plain, $normalized_line, $matches)) {
-            $possible_version = trim($matches[1]);
-            $possible_date    = trim($matches[2]);
-            $matched_version  = true;
-        }
-
-        if ($matched_version) {
-            if (!empty($current_version) || !empty($current_entries)) {
-                $versions[] = [
-                    'version' => $current_version,
-                    'date'    => $current_date,
-                    'entries' => $current_entries,
-                ];
+            // 1) 3.0.0-beta.1 (18 April 2026)
+            if (preg_match('/^(' . $version_pattern . ')\s*\(\s*(.+?)\s*\)$/i', $header, $m)) {
+                $possible_version = trim($m[1]);
+                $possible_date    = trim($m[2]);
+                $matched_version  = true;
+            }
+            // 2) 3.0.0-rc1 - 17 April 2026
+            elseif (preg_match('/^(' . $version_pattern . ')\s*[-–]\s*(.+)$/i', $header, $m)) {
+                $possible_version = trim($m[1]);
+                $possible_date    = trim($m[2]);
+                $matched_version  = true;
+            }
+            // 3) 3.0.0-preview 15 April 2026
+            elseif (preg_match('/^(' . $version_pattern . ')\s+(\d{1,2}\s+[A-Za-z]+\s+\d{4})$/i', $header, $m)) {
+                $possible_version = trim($m[1]);
+                $possible_date    = trim($m[2]);
+                $matched_version  = true;
+            }
+            // 4) 2.8.3  (version only, no date)
+            elseif (preg_match('/^(' . $version_pattern . ')$/i', $header, $m)) {
+                $possible_version = trim($m[1]);
+                $possible_date    = '';
+                $matched_version  = true;
             }
 
-            $current_version = $possible_version;
-            $current_date    = $possible_date;
-            $current_entries = [];
-            $current_type = '';
+            if ($matched_version) {
+                if (!empty($current_version) || !empty($current_entries)) {
+                    $versions[] = [
+                        'version' => $current_version,
+                        'date'    => $current_date,
+                        'entries' => $current_entries,
+                    ];
+                }
+
+                $current_version = $possible_version;
+                $current_date    = $possible_date;
+                $current_entries = [];
+                $current_type    = '';
+                continue;
+            }
+
+            // If it's not a valid version heading, ignore it.
             continue;
         }
 
+        // Markdown type heading
         if (preg_match('/^###\s+(.+)$/', $normalized_line, $matches)) {
             $raw_type = strtolower(trim($matches[1]));
             $current_type = isset($type_aliases[$raw_type]) ? $type_aliases[$raw_type] : ucwords($raw_type);
             continue;
         }
 
+        // Markdown bullet entry
         if (preg_match('/^[-*]\s+(.+)$/', $normalized_line, $matches)) {
             $entry_text = trim($matches[1]);
 
@@ -388,7 +413,6 @@ function rup_changelogger_parse_markdown_changelog($text) {
 
     return apply_filters('rup_changelogger_parsed_entries', $versions, $text);
 }
-
 /**
  * -------------------------------------------------------
  * Render
@@ -663,342 +687,281 @@ add_action('template_redirect', 'rup_changelogger_clear_cache_via_url');
  * Styles
  * -------------------------------------------------------
  */
-
 function rup_changelogger_enqueue_styles() {
     $colors = rup_changelogger_get_default_label_colors();
     $custom_css = apply_filters('rup_changelogger_custom_css', '');
 
     echo '<style>
-        .rup-changelogger {
-            max-width: 800px;
-            margin: 0 auto;
-        }
 
-        .rup-changelogger-title {
-            margin-bottom: 20px;
-            font-size: 1.5rem;
-        }
+    .rup-changelogger {
+        max-width: 800px;
+        margin: 0 auto;
+    }
 
-        .rup-changelogger-filters {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 28px;
-        }
+    .rup-changelogger-title {
+        margin-bottom: 20px;
+        font-size: 1.5rem;
+    }
 
-        .rup-filter-btn,
-        .rup-toggle-version {
-            cursor: pointer;
-            border: 1px solid #ccc;
-            background: #fff;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 14px;
-        }
+    .rup-changelogger-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 28px;
+    }
 
-        .rup-filter-btn.active {
-            background: #333;
-            color: #fff;
-            border-color: #333;
-        }
+    .rup-filter-btn,
+    .rup-toggle-version {
+        cursor: pointer;
+        border: 1px solid #ccc;
+        background: #fff;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 14px;
+    }
 
+    .rup-filter-btn.active {
+        background: #333;
+        color: #fff;
+        border-color: #333;
+    }
+
+    /* ===================== */
+    /* TIMELINE */
+    /* ===================== */
+
+    .changelog-timeline {
+        position: relative;
+        border-left: 3px solid #ddd;
+        padding-left: 40px;
+        margin-top: 10px;
+    }
+
+    .changelog-entry {
+        position: relative;
+        margin-bottom: 40px;
+        padding-bottom: 12px;
+    }
+
+    .changelog-entry::before {
+        content: "";
+        position: absolute;
+        left: -49px;
+        top: 14px;
+        width: 14px;
+        height: 14px;
+        background: #fff;
+        border: 3px solid #333;
+        border-radius: 50%;
+        z-index: 2;
+        box-sizing: border-box;
+    }
+
+    .changelog-header {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .changelog-version-box {
+        background: #333;
+        color: #fff;
+        font-weight: bold;
+        padding: 6px 12px;
+        border-radius: 5px;
+        white-space: nowrap;
+        max-width: 260px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        position: relative;
+        z-index: 3;
+    }
+
+    .changelog-date {
+        color: #777;
+        font-size: 0.95em;
+        font-weight: bold;
+        min-width: 0;
+    }
+
+    .changelog-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 16px 0;
+    }
+
+    .changelog-summary-pill {
+        background: #f1f1f1;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .changelog-meta.is-collapsed {
+        display: none;
+    }
+
+    .changelog-items {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .changelog-item {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 10px;
+        align-items: start;
+        border-bottom: 1px dashed #ddd;
+        padding-bottom: 12px;
+    }
+
+    .changelog-label {
+        background: #6c757d;
+        color: white;
+        padding: 8px 14px;
+        border-radius: 5px;
+        font-weight: bold;
+        display: inline-flex;
+        min-width: 140px;
+        justify-content: center;
+        align-items: center;
+        font-size: 14px;
+        line-height: 1.2;
+        flex-shrink: 0;
+    }
+
+    .changelog-text {
+        overflow-wrap: anywhere;
+        min-width: 0;
+    }
+
+    /* Label colors */
+    .changelog-label.new { background: ' . esc_attr($colors['New']) . '; }
+    .changelog-label.added { background: ' . esc_attr($colors['Added']) . '; }
+    .changelog-label.changed { background: ' . esc_attr($colors['Changed']) . '; }
+    .changelog-label.updated { background: ' . esc_attr($colors['Updated']) . '; }
+    .changelog-label.fixed { background: ' . esc_attr($colors['Fixed']) . '; }
+    .changelog-label.hotfix { background: ' . esc_attr($colors['Hotfix']) . '; }
+    .changelog-label.tweaked { background: ' . esc_attr($colors['Tweaked']) . '; }
+    .changelog-label.improvement { background: ' . esc_attr($colors['Improvement']) . '; }
+    .changelog-label.performance { background: ' . esc_attr($colors['Performance']) . '; }
+    .changelog-label.security { background: ' . esc_attr($colors['Security']) . '; }
+    .changelog-label.deprecated { background: ' . esc_attr($colors['Deprecated']) . '; }
+    .changelog-label.removed { background: ' . esc_attr($colors['Removed']) . '; }
+    .changelog-label.breaking { background: ' . esc_attr($colors['Breaking']) . '; }
+    .changelog-label.compatibility { background: ' . esc_attr($colors['Compatibility']) . '; }
+    .changelog-label.experimental { background: ' . esc_attr($colors['Experimental']) . '; }
+    .changelog-label.info { background: ' . esc_attr($colors['Info']) . '; }
+
+    .changelog-label.warning,
+    .changelog-label.known-issue {
+        background: ' . esc_attr($colors['Warning']) . ';
+        color: #000;
+        border: 2px solid #ff8c00;
+        box-shadow: 0 0 8px rgba(255, 140, 0, 0.6);
+    }
+
+    @keyframes warningPulse {
+        0% {
+            transform: scale(1);
+            box-shadow: 0 0 8px rgba(255, 140, 0, 0.6);
+        }
+        100% {
+            transform: scale(1.02);
+            box-shadow: 0 0 12px rgba(255, 140, 0, 0.85);
+        }
+    }
+
+    .animate-warnings .changelog-label.warning,
+    .animate-warnings .changelog-label.known-issue {
+        animation: warningPulse 2s infinite alternate ease-in-out;
+    }
+
+    /* ===================== */
+    /* CARDS */
+    /* ===================== */
+
+    .rup-changelogger.layout-cards .changelog-timeline {
+        border-left: none;
+        padding-left: 0;
+    }
+
+    .rup-changelogger.layout-cards .changelog-entry {
+        background: #fff;
+        border: 1px solid #e2e2e2;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 24px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .rup-changelogger.layout-cards .changelog-entry::before {
+        display: none;
+    }
+
+    /* ===================== */
+    /* COMPACT */
+    /* ===================== */
+
+    .rup-changelogger.layout-compact .changelog-timeline {
+        border-left: none;
+        padding-left: 0;
+    }
+
+    .rup-changelogger.layout-compact .changelog-entry {
+        margin-bottom: 24px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #e5e5e5;
+    }
+
+    .rup-changelogger.layout-compact .changelog-entry::before {
+        display: none;
+    }
+
+    .rup-changelogger.layout-compact .changelog-item {
+        grid-template-columns: 120px 1fr;
+    }
+
+    /* ===================== */
+    /* MOBILE */
+    /* ===================== */
+
+    @media (max-width: 768px) {
         .changelog-timeline {
-            position: relative;
-            border-left: 3px solid #ddd;
-            padding-left: 90px;
-            margin-top: 10px;
+            border-left: none;
+            padding-left: 0;
         }
 
-        .changelog-entry {
-            position: relative;
-            margin-bottom: 40px;
-            padding-bottom: 12px;
-        }
-
-        .changelog-entry:first-child {
-            padding-top: 8px;
-        }
-
-        .changelog-header {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-            position: relative;
-            margin-bottom: 14px;
-        }
-
-        .changelog-version-box {
-            background: #333;
-            color: #fff;
-            font-weight: bold;
-            padding: 6px 12px;
-            border-radius: 5px;
-            min-width: 60px;
-            max-width: 180px;
-            width: max-content;
-            text-align: center;
-            white-space: nowrap;
-            position: absolute;
-            left: -140px;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-
-        .changelog-date {
-            color: #777;
-            font-size: 0.95em;
-            font-weight: bold;
-            margin-left: 15px;
-        }
-
-        .changelog-summary {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin: 0 0 16px 25px;
-        }
-
-        .changelog-summary-pill {
-            background: #f1f1f1;
-            padding: 6px 10px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .changelog-meta {
-            margin-left: 25px;
-        }
-
-        .changelog-meta.is-collapsed {
+        .changelog-entry::before {
             display: none;
         }
 
-        .changelog-items {
-            list-style: none;
-            padding: 0;
-            margin: 0 0 0 30px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+        .changelog-header {
+            grid-template-columns: 1fr;
         }
 
         .changelog-item {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            gap: 10px;
-            align-items: start;
-            border-bottom: 1px dashed #ddd;
-            padding-bottom: 12px;
+            grid-template-columns: 1fr;
         }
 
         .changelog-label {
-            color: white;
-            padding: 8px 14px;
-            border-radius: 5px;
-            font-weight: bold;
-            display: inline-flex;
-            min-width: 140px;
-            justify-content: center;
-            align-items: center;
-            font-size: 14px;
-            line-height: 1.2;
-            flex-shrink: 0;
-        }
-
-        .changelog-text {
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            min-width: 0;
-        }
-
-        .changelog-label.new { background: ' . esc_attr($colors['New']) . '; }
-        .changelog-label.added { background: ' . esc_attr($colors['Added']) . '; }
-        .changelog-label.changed { background: ' . esc_attr($colors['Changed']) . '; }
-        .changelog-label.updated { background: ' . esc_attr($colors['Updated']) . '; }
-        .changelog-label.fixed { background: ' . esc_attr($colors['Fixed']) . '; }
-        .changelog-label.hotfix { background: ' . esc_attr($colors['Hotfix']) . '; }
-        .changelog-label.tweaked { background: ' . esc_attr($colors['Tweaked']) . '; }
-        .changelog-label.improvement { background: ' . esc_attr($colors['Improvement']) . '; }
-        .changelog-label.performance { background: ' . esc_attr($colors['Performance']) . '; }
-        .changelog-label.security { background: ' . esc_attr($colors['Security']) . '; }
-        .changelog-label.deprecated { background: ' . esc_attr($colors['Deprecated']) . '; }
-        .changelog-label.removed { background: ' . esc_attr($colors['Removed']) . '; }
-        .changelog-label.breaking { background: ' . esc_attr($colors['Breaking']) . '; }
-        .changelog-label.compatibility { background: ' . esc_attr($colors['Compatibility']) . '; }
-        .changelog-label.experimental { background: ' . esc_attr($colors['Experimental']) . '; }
-        .changelog-label.info { background: ' . esc_attr($colors['Info']) . '; }
-
-        .changelog-label.known-issue,
-        .changelog-label.warning {
-            background: ' . esc_attr($colors['Warning']) . ';
-            color: #000;
-            border: 2px solid #ff8c00;
-            box-shadow: 0 0 8px rgba(255, 140, 0, 0.6);
-        }
-
-        @keyframes warningPulse {
-            0% {
-                transform: scale(1);
-                box-shadow: 0 0 8px rgba(255, 140, 0, 0.6);
-            }
-            100% {
-                transform: scale(1.02);
-                box-shadow: 0 0 12px rgba(255, 140, 0, 0.85);
-            }
-        }
-
-        .animate-warnings .changelog-label.warning,
-        .animate-warnings .changelog-label.known-issue {
-            animation: warningPulse 2s infinite alternate ease-in-out;
-        }
-
-        /* Cards layout */
-        .rup-changelogger.layout-cards .changelog-timeline {
-            border-left: none;
-            padding-left: 0;
-            margin-top: 10px;
-        }
-
-        .rup-changelogger.layout-cards .changelog-entry {
-            background: #fff;
-            border: 1px solid #e2e2e2;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 24px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        }
-
-        .rup-changelogger.layout-cards .changelog-header {
-            margin-bottom: 14px;
-        }
-
-        .rup-changelogger.layout-cards .changelog-version-box {
-            position: static;
-            transform: none;
-            left: auto;
-            top: auto;
-            max-width: 100%;
-            width: auto;
-            white-space: normal;
-        }
-
-        .rup-changelogger.layout-cards .changelog-meta,
-        .rup-changelogger.layout-cards .changelog-summary {
-            margin-left: 0;
-        }
-
-        .rup-changelogger.layout-cards .changelog-items {
-            margin-left: 0;
-        }
-
-        /* Compact layout */
-        .rup-changelogger.layout-compact .changelog-timeline {
-            border-left: none;
-            padding-left: 0;
-            margin-top: 10px;
-        }
-
-        .rup-changelogger.layout-compact .changelog-entry {
-            margin-bottom: 24px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #e5e5e5;
-        }
-
-        .rup-changelogger.layout-compact .changelog-header {
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        .rup-changelogger.layout-compact .changelog-version-box {
-            position: static;
-            transform: none;
-            left: auto;
-            top: auto;
-            font-size: 14px;
-            padding: 5px 10px;
             min-width: auto;
-            max-width: 100%;
-            width: auto;
-            white-space: normal;
+            justify-content: flex-start;
         }
+    }
 
-        .rup-changelogger.layout-compact .changelog-date {
-            font-size: 14px;
-            margin-left: 0;
-        }
-
-        .rup-changelogger.layout-compact .changelog-meta,
-        .rup-changelogger.layout-compact .changelog-summary {
-            margin-left: 0;
-        }
-
-        .rup-changelogger.layout-compact .changelog-items {
-            margin-left: 0;
-            gap: 8px;
-        }
-
-        .rup-changelogger.layout-compact .changelog-item {
-            grid-template-columns: 120px 1fr;
-        }
-
-        .rup-changelogger.layout-compact .changelog-label {
-            min-width: 110px;
-            font-size: 12px;
-            padding: 6px 10px;
-        }
-
-        @media (max-width: 768px) {
-            .rup-changelogger-filters {
-                margin-bottom: 22px;
-            }
-
-            .changelog-timeline {
-                border-left: none;
-                padding-left: 20px;
-            }
-
-            .changelog-version-box {
-                position: static;
-                transform: none;
-                left: auto;
-                top: auto;
-                max-width: 100%;
-                width: auto;
-                white-space: normal;
-            }
-
-            .changelog-date {
-                margin-left: 0;
-            }
-
-            .changelog-items {
-                margin-left: 0;
-            }
-
-            .changelog-item,
-            .rup-changelogger.layout-compact .changelog-item {
-                grid-template-columns: 1fr;
-            }
-
-            .changelog-label {
-                min-width: auto;
-                justify-content: flex-start;
-            }
-
-            .changelog-summary {
-                margin-left: 0;
-            }
-
-            .changelog-meta {
-                margin-left: 0;
-            }
-        }
-
-        ' . $custom_css . '
+    ' . $custom_css . '
     </style>';
 }
+
 
 add_action('wp_head', 'rup_changelogger_enqueue_styles');
 

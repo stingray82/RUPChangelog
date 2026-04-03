@@ -77,7 +77,6 @@ function rup_changelogger_build_cache_key($url, $atts = []) {
 
     return 'cached_changelog_timeline_' . md5(wp_json_encode($key_data));
 }
-
 /**
  * Supports:
  * 1.0
@@ -92,6 +91,18 @@ function rup_changelogger_build_cache_key($url, $atts = []) {
  */
 function rup_changelogger_get_version_pattern() {
     return 'v?\d+(?:\.\d+)*(?:[-._]?(?:alpha|beta|rc|pre|preview|dev|canary|nightly)[-._]?[a-z0-9]*)?(?:\+[a-z0-9.\-_]+)?';
+}
+
+function rup_changelogger_version_anchor($version) {
+    $anchor = strtolower(trim((string) $version));
+    $anchor = preg_replace('/[^a-z0-9]+/', '-', $anchor);
+    $anchor = trim($anchor, '-');
+
+    if ($anchor === '') {
+        $anchor = 'entry';
+    }
+
+    return 'changelog-' . $anchor;
 }
 
 /**
@@ -250,7 +261,7 @@ function rup_changelogger_parse_plain_changelog($text) {
             $possible_date    = trim($m[2]);
             $matched_version  = true;
         }
-        // 6) Version 2.8.2
+         // 6) Version 2.8.2
         elseif (preg_match('/^(?:Version|version|Release|release)\s+(' . $version_pattern . ')$/i', $normalized_line, $m)) {
             $possible_version = trim($m[1]);
             $possible_date    = '';
@@ -296,9 +307,6 @@ function rup_changelogger_parse_plain_changelog($text) {
     return apply_filters('rup_changelogger_parsed_entries', $versions, $text);
 }
 
-
-
-
 /**
  * -------------------------------------------------------
  * Markdown parser
@@ -331,15 +339,12 @@ function rup_changelogger_parse_markdown_changelog($text) {
         // Markdown version header
         if (preg_match('/^##\s+(.+)$/', $normalized_line, $matches)) {
             $header = trim($matches[1]);
-
-            // Remove optional leading words
             $header = preg_replace('/^(Version|Release)\s+/i', '', $header);
 
             $possible_version = '';
             $possible_date = '';
             $matched_version = false;
-
-            // 1) 3.0.0-beta.1 (18 April 2026)
+            // Remove optional leading words
             if (preg_match('/^(' . $version_pattern . ')\s*\(\s*(.+?)\s*\)$/i', $header, $m)) {
                 $possible_version = trim($m[1]);
                 $possible_date    = trim($m[2]);
@@ -379,18 +384,15 @@ function rup_changelogger_parse_markdown_changelog($text) {
                 $current_type    = '';
                 continue;
             }
-
             // If it's not a valid version heading, ignore it.
             continue;
         }
-
-        // Markdown type heading
+         // Markdown type heading
         if (preg_match('/^###\s+(.+)$/', $normalized_line, $matches)) {
             $raw_type = strtolower(trim($matches[1]));
             $current_type = isset($type_aliases[$raw_type]) ? $type_aliases[$raw_type] : ucwords($raw_type);
             continue;
         }
-
         // Markdown bullet entry
         if (preg_match('/^[-*]\s+(.+)$/', $normalized_line, $matches)) {
             $entry_text = trim($matches[1]);
@@ -413,6 +415,7 @@ function rup_changelogger_parse_markdown_changelog($text) {
 
     return apply_filters('rup_changelogger_parsed_entries', $versions, $text);
 }
+
 /**
  * -------------------------------------------------------
  * Render
@@ -514,13 +517,14 @@ function rup_changelogger_render_changelog_timeline($versions, $atts = []) {
             $summary[$entry['type']]++;
         }
 
-        $entry_id = 'rup-changelog-version-' . $index . '-' . wp_rand(1000, 9999);
+        $anchor_id  = rup_changelogger_version_anchor($version ?: ('entry-' . $index));
+        $content_id = $anchor_id . '-content';
 
-        $output .= '<div class="changelog-entry">';
+        $output .= '<div id="' . esc_attr($anchor_id) . '" class="changelog-entry">';
         $output .= '<div class="changelog-header">';
 
         if ($atts['show_version'] === 'yes') {
-            $output .= '<div class="changelog-version-box">' . esc_html($version) . '</div>';
+            $output .= '<a href="#' . esc_attr($anchor_id) . '" class="changelog-version-box" data-changelog-anchor="' . esc_attr($anchor_id) . '">' . esc_html($version) . '</a>';
         }
 
         if ($atts['show_date'] === 'yes' && !empty($date)) {
@@ -528,7 +532,7 @@ function rup_changelogger_render_changelog_timeline($versions, $atts = []) {
         }
 
         if ($atts['collapsible'] === 'yes') {
-            $output .= '<button type="button" class="rup-toggle-version" aria-expanded="' . ($index === 0 ? 'true' : 'false') . '" aria-controls="' . esc_attr($entry_id) . '">';
+            $output .= '<button type="button" class="rup-toggle-version" aria-expanded="' . ($index === 0 ? 'true' : 'false') . '" aria-controls="' . esc_attr($content_id) . '">';
             $output .= $index === 0 ? 'Hide' : 'Show';
             $output .= '</button>';
         }
@@ -548,7 +552,7 @@ function rup_changelogger_render_changelog_timeline($versions, $atts = []) {
             $content_classes .= ' is-collapsed';
         }
 
-        $output .= '<div id="' . esc_attr($entry_id) . '" class="' . esc_attr($content_classes) . '">';
+        $output .= '<div id="' . esc_attr($content_id) . '" class="' . esc_attr($content_classes) . '">';
         $output .= '<ul class="changelog-items">';
 
         foreach ($entries as $entry) {
@@ -687,6 +691,7 @@ add_action('template_redirect', 'rup_changelogger_clear_cache_via_url');
  * Styles
  * -------------------------------------------------------
  */
+
 function rup_changelogger_enqueue_styles() {
     $colors = rup_changelogger_get_default_label_colors();
     $custom_css = apply_filters('rup_changelogger_custom_css', '');
@@ -696,6 +701,7 @@ function rup_changelogger_enqueue_styles() {
     .rup-changelogger {
         max-width: 800px;
         margin: 0 auto;
+        scroll-margin-top: 20px;
     }
 
     .rup-changelogger-title {
@@ -741,6 +747,7 @@ function rup_changelogger_enqueue_styles() {
         position: relative;
         margin-bottom: 40px;
         padding-bottom: 12px;
+        scroll-margin-top: 20px;
     }
 
     .changelog-entry::before {
@@ -777,6 +784,12 @@ function rup_changelogger_enqueue_styles() {
         text-overflow: ellipsis;
         position: relative;
         z-index: 3;
+        text-decoration: none;
+    }
+
+    .changelog-version-box:hover,
+    .changelog-version-box:focus {
+        opacity: 0.92;
     }
 
     .changelog-date {
@@ -843,7 +856,15 @@ function rup_changelogger_enqueue_styles() {
         min-width: 0;
     }
 
-    /* Label colors */
+    .rup-changelog-highlight {
+        animation: rupChangelogFlash 2.5s ease;
+    }
+
+    @keyframes rupChangelogFlash {
+        0% { background-color: rgba(255, 235, 59, 0.30); }
+        100% { background-color: transparent; }
+    }
+      /* Label colors */
     .changelog-label.new { background: ' . esc_attr($colors['New']) . '; }
     .changelog-label.added { background: ' . esc_attr($colors['Added']) . '; }
     .changelog-label.changed { background: ' . esc_attr($colors['Changed']) . '; }
@@ -885,10 +906,9 @@ function rup_changelogger_enqueue_styles() {
         animation: warningPulse 2s infinite alternate ease-in-out;
     }
 
-    /* ===================== */
+	 /* ===================== */
     /* CARDS */
     /* ===================== */
-
     .rup-changelogger.layout-cards .changelog-timeline {
         border-left: none;
         padding-left: 0;
@@ -911,56 +931,56 @@ function rup_changelogger_enqueue_styles() {
 	/* COMPACT */
 	/* ===================== */
 
-	.rup-changelogger.layout-compact .changelog-timeline {
-	    border-left: none;
-	    padding-left: 0;
-	}
+    .rup-changelogger.layout-compact .changelog-timeline {
+        border-left: none;
+        padding-left: 0;
+    }
 
-	.rup-changelogger.layout-compact .changelog-entry {
-	    margin-bottom: 24px;
-	    padding-bottom: 16px;
-	    border-bottom: 1px solid #e5e5e5;
-	}
+    .rup-changelogger.layout-compact .changelog-entry {
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #e5e5e5;
+    }
 
-	.rup-changelogger.layout-compact .changelog-entry::before {
-	    display: none;
-	}
+    .rup-changelogger.layout-compact .changelog-entry::before {
+        display: none;
+    }
 
-	.rup-changelogger.layout-compact .changelog-header {
-	    display: flex;
-	    flex-wrap: wrap;
-	    align-items: center;
-	    gap: 10px;
-	    margin-bottom: 10px;
-	}
+    .rup-changelogger.layout-compact .changelog-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
 
-	.rup-changelogger.layout-compact .changelog-version-box {
-	    max-width: none;
-	    overflow: visible;
-	    text-overflow: unset;
-	}
+    .rup-changelogger.layout-compact .changelog-version-box {
+        max-width: none;
+        overflow: visible;
+        text-overflow: unset;
+    }
 
-	.rup-changelogger.layout-compact .changelog-date {
-	    font-size: 0.95em;
-	}
+    .rup-changelogger.layout-compact .changelog-date {
+        font-size: 0.95em;
+    }
 
-	.rup-changelogger.layout-compact .changelog-summary {
-	    margin-bottom: 12px;
-	}
+    .rup-changelogger.layout-compact .changelog-summary {
+        margin-bottom: 12px;
+    }
 
-	.rup-changelogger.layout-compact .changelog-items {
-	    gap: 10px;
-	}
+    .rup-changelogger.layout-compact .changelog-items {
+        gap: 10px;
+    }
 
-	.rup-changelogger.layout-compact .changelog-item {
-	    display: flex;
-	    flex-direction: column;
-	    align-items: flex-start;
-	    gap: 8px;
-	    padding-bottom: 10px;
-	}
+    .rup-changelogger.layout-compact .changelog-item {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        padding-bottom: 10px;
+    }
 
-	.rup-changelogger.layout-compact .changelog-label {
+    .rup-changelogger.layout-compact .changelog-label {
         min-width: 0;
         width: auto;
         font-size: 12px;
@@ -968,14 +988,11 @@ function rup_changelogger_enqueue_styles() {
         justify-content: flex-start;
     }
 
-	.rup-changelogger.layout-compact .changelog-text {
-	    line-height: 1.5;
-	    overflow-wrap: anywhere;
-	    min-width: 0;
-	}
-
-
-
+    .rup-changelogger.layout-compact .changelog-text {
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+        min-width: 0;
+    }
 
     /* ===================== */
     /* MOBILE */
@@ -1024,8 +1041,6 @@ function rup_changelogger_enqueue_styles() {
     ' . $custom_css . '
     </style>';
 }
-
-
 add_action('wp_head', 'rup_changelogger_enqueue_styles');
 
 /**
@@ -1038,12 +1053,35 @@ function rup_changelogger_enqueue_inline_script() {
     ?>
     <script>
     document.addEventListener('DOMContentLoaded', function () {
+        function revealAndHighlightEntry(targetEntry) {
+            if (!targetEntry || !targetEntry.classList.contains('changelog-entry')) {
+                return;
+            }
+
+            const toggleBtn = targetEntry.querySelector('.rup-toggle-version');
+            const content = targetEntry.querySelector('.changelog-meta');
+
+            if (toggleBtn && content && content.classList.contains('is-collapsed')) {
+                content.classList.remove('is-collapsed');
+                toggleBtn.setAttribute('aria-expanded', 'true');
+                toggleBtn.textContent = 'Hide';
+            }
+
+            targetEntry.classList.add('rup-changelog-highlight');
+
+            window.setTimeout(function() {
+                targetEntry.classList.remove('rup-changelog-highlight');
+            }, 2500);
+        }
+
         document.querySelectorAll('.rup-changelogger').forEach(function(wrapper) {
             const filterButtons = wrapper.querySelectorAll('.rup-filter-btn');
 
             filterButtons.forEach(function(button) {
                 button.addEventListener('click', function() {
-                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    filterButtons.forEach(function(btn) {
+                        btn.classList.remove('active');
+                    });
                     this.classList.add('active');
 
                     const filter = this.getAttribute('data-filter');
@@ -1080,6 +1118,19 @@ function rup_changelogger_enqueue_inline_script() {
                     this.setAttribute('aria-expanded', isCollapsed ? 'true' : 'false');
                     this.textContent = isCollapsed ? 'Hide' : 'Show';
                 });
+            });
+
+            if (window.location.hash) {
+                const targetEntry = wrapper.querySelector(window.location.hash);
+                revealAndHighlightEntry(targetEntry);
+            }
+        });
+
+        window.addEventListener('hashchange', function() {
+            document.querySelectorAll('.rup-changelogger').forEach(function(wrapper) {
+                if (!window.location.hash) return;
+                const targetEntry = wrapper.querySelector(window.location.hash);
+                revealAndHighlightEntry(targetEntry);
             });
         });
     });

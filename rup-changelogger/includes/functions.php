@@ -908,27 +908,74 @@ function rup_changelogger_enqueue_styles() {
     }
 
     /* ===================== */
-    /* COMPACT */
-    /* ===================== */
+	/* COMPACT */
+	/* ===================== */
 
-    .rup-changelogger.layout-compact .changelog-timeline {
-        border-left: none;
-        padding-left: 0;
+	.rup-changelogger.layout-compact .changelog-timeline {
+	    border-left: none;
+	    padding-left: 0;
+	}
+
+	.rup-changelogger.layout-compact .changelog-entry {
+	    margin-bottom: 24px;
+	    padding-bottom: 16px;
+	    border-bottom: 1px solid #e5e5e5;
+	}
+
+	.rup-changelogger.layout-compact .changelog-entry::before {
+	    display: none;
+	}
+
+	.rup-changelogger.layout-compact .changelog-header {
+	    display: flex;
+	    flex-wrap: wrap;
+	    align-items: center;
+	    gap: 10px;
+	    margin-bottom: 10px;
+	}
+
+	.rup-changelogger.layout-compact .changelog-version-box {
+	    max-width: none;
+	    overflow: visible;
+	    text-overflow: unset;
+	}
+
+	.rup-changelogger.layout-compact .changelog-date {
+	    font-size: 0.95em;
+	}
+
+	.rup-changelogger.layout-compact .changelog-summary {
+	    margin-bottom: 12px;
+	}
+
+	.rup-changelogger.layout-compact .changelog-items {
+	    gap: 10px;
+	}
+
+	.rup-changelogger.layout-compact .changelog-item {
+	    display: flex;
+	    flex-direction: column;
+	    align-items: flex-start;
+	    gap: 8px;
+	    padding-bottom: 10px;
+	}
+
+	.rup-changelogger.layout-compact .changelog-label {
+        min-width: 0;
+        width: auto;
+        font-size: 12px;
+        padding: 6px 10px;
+        justify-content: flex-start;
     }
 
-    .rup-changelogger.layout-compact .changelog-entry {
-        margin-bottom: 24px;
-        padding-bottom: 12px;
-        border-bottom: 1px solid #e5e5e5;
-    }
+	.rup-changelogger.layout-compact .changelog-text {
+	    line-height: 1.5;
+	    overflow-wrap: anywhere;
+	    min-width: 0;
+	}
 
-    .rup-changelogger.layout-compact .changelog-entry::before {
-        display: none;
-    }
 
-    .rup-changelogger.layout-compact .changelog-item {
-        grid-template-columns: 120px 1fr;
-    }
+
 
     /* ===================== */
     /* MOBILE */
@@ -954,6 +1001,22 @@ function rup_changelogger_enqueue_styles() {
 
         .changelog-label {
             min-width: auto;
+            justify-content: flex-start;
+        }
+
+        .rup-changelogger.layout-compact .changelog-header {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+
+        .rup-changelogger.layout-compact .changelog-item {
+            gap: 8px;
+        }
+
+        .rup-changelogger.layout-compact .changelog-label {
+            width: auto;
+            min-width: 0;
             justify-content: flex-start;
         }
     }

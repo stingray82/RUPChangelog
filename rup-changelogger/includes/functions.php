@@ -215,7 +215,7 @@ function rup_changelogger_parse_plain_changelog($text) {
             continue;
         }
 
-        $version_regex = '/^(?:=|\s*)?\s*(?:Version\s*|version\s*|Release\s*|release\s*|v)?\s*' . $version_pattern . '\s*(?:[-–\s]*\(?\s*(.*?)\s*\)?\s*)?(?:=|\s*)?$/i';
+        $version_regex = '/^(?:=|\s*)?\s*(?:Version\s*|version\s*|Release\s*|release\s*|v)?\s*' . $version_pattern . '(?:\s+|\s*[-–]\s*|\s*\(\s*)(.*?)\s*(?:\)|\s*)\s*(?:=|\s*)?$/i';
 
         if (preg_match($version_regex, $line, $matches)) {
             if (!empty($current_version) || !empty($current_entries)) {

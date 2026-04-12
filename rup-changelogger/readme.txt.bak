@@ -4,7 +4,7 @@ Donate link: https://reallyusefulplugins.com/donate
 Tags: Changelogger, Change log, plugins
 Requires at least: 6.5
 Tested up to: 6.9.4
-Stable tag: 1.24
+Stable tag: 1.30-alpha.1
 Requires PHP: 8.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -24,6 +24,17 @@ A quick and easy way to add changelog entries from a remote URL in WordPress
 Add a shortcode like this, this one dsplays this plugins changelog[rup_changelogger_timeline url='https://raw.githubusercontent.com/stingray82/rup-changelogs/refs/heads/main/rupchangelogger.txt']
 
 == Changelog ==
+= 1.3.0-alpha 3 April 2026 =
+New: Added Markdown changelog support with auto, plain, and markdown format handling
+New: Added cards and compact display layouts alongside the existing timeline layout
+New: Added show_summary shortcode option for optional per-release summary pills
+New: Expanded version parsing to support semantic versioning, alpha, beta, rc, pre, preview, dev, canary, nightly, and build metadata
+Updated: Changed shortcode defaults to timeline layout with show_filters disabled, collapsible disabled, show_summary disabled, and show_date, show_version, and show_labels enabled
+Updated: Improved builder-agnostic shortcode workflow and default output behaviour
+Fixed: Corrected order handling so desc preserves source order and asc reverses it
+Fixed: Improved client-side filtering so empty version groups are hidden when filters are applied
+Tweaked: Refined README documentation to cover new shortcode options, defaults, layouts, format support, and version patterns
+
 = 1.24 23 March 2026 =
 Update: Updater to 2.0-Alpha
 Update: Compatibility

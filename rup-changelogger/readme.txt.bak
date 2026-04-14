@@ -24,7 +24,10 @@ A quick and easy way to add changelog entries from a remote URL in WordPress
 Add a shortcode like this, this one dsplays this plugins changelog[rup_changelogger_timeline url='https://raw.githubusercontent.com/stingray82/rup-changelogs/refs/heads/main/rupchangelogger.txt']
 
 == Changelog ==
-= 1.3.0 - Beta 1 April 2026 =
+= 1.3.0  April 2026 =
+Final Release of 1.3.0
+
+= 1.3.0 - Beta 5 April 2026 =
 Moved to Beta Final Change Log will be Updated on Release
 
 = 1.3.0-alpha.2 3 April 2026 =

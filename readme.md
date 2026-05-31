@@ -113,7 +113,7 @@ documentation references and general release commentary without using labels.
 ```txt
 = 2.0.0 May 2026 =
 
-Text:
+Text: 2.0 Release Notes
 This release introduces the new text block system.
 
 Documentation:
@@ -147,6 +147,18 @@ Text:
 Additional documentation.
 EndText
 ```
+
+Within blocks if you want to render something that would usually be tagged you should wrap it in a code set
+
+```
+Code: Example Inclusion
+Text:
+Introduction note.
+EndText
+EndCode
+```
+
+
 
 ### Features
 

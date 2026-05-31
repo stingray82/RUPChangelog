@@ -41,6 +41,9 @@ function rup_changelogger_get_default_type_aliases() {
         'text'          => 'Text',
         'block'         => 'Text',
         'paragraph'     => 'Text',
+        'code'          => 'Code',
+        'example'       => 'Code',
+        'snippet'       => 'Code',
     ]);
 }
 
@@ -64,6 +67,7 @@ function rup_changelogger_get_default_label_colors() {
         'Known Issue'   => '#ffc107',
         'Warning'       => '#ffc107',
         'Info'          => '#6c757d',
+        'Code'          => '#212529',
     ]);
 }
 
@@ -165,19 +169,87 @@ function rup_changelogger_is_text_block_end($line) {
     return (bool) preg_match('/^end\s*(?:text|block|paragraph)$/i', trim((string) $line));
 }
 
-function rup_changelogger_render_text_block($text) {
-    $text = str_replace(["
-", "
-"], "
-", trim((string) $text));
+function rup_changelogger_is_code_block_type($type) {
+    return in_array(strtolower(trim((string) $type)), ['code', 'example', 'snippet'], true);
+}
+
+function rup_changelogger_is_code_block_end($line) {
+    return (bool) preg_match('/^end\s*(?:code|example|snippet)$/i', trim((string) $line));
+}
+
+function rup_changelogger_parse_block_marker($line, $types) {
+    $line = trim((string) $line);
+
+    if (!preg_match('/^([a-zA-Z\s]+):\s*(.*)$/', $line, $matches)) {
+        return false;
+    }
+
+    $raw_type = strtolower(trim($matches[1]));
+
+    if (!in_array($raw_type, array_map('strtolower', (array) $types), true)) {
+        return false;
+    }
+
+    return [
+        'type'    => $raw_type,
+        'heading' => trim($matches[2]),
+    ];
+}
+
+function rup_changelogger_render_code_block($code, $classes = [], $attrs = [], $heading = '') {
+    $code = str_replace(["\r\n", "\r"], "\n", rtrim((string) $code));
+    $heading = trim((string) $heading);
+
+    if ($code === '') {
+        return '';
+    }
+
+    $classes = array_filter(array_merge(['changelog-code-block'], (array) $classes));
+    $wrap_classes = ['changelog-code-block-wrap'];
+
+    foreach ($classes as $class) {
+        if ($class === 'changelog-code-block') {
+            continue;
+        }
+
+        $wrap_classes[] = $class;
+    }
+
+    if ($heading !== '') {
+        $classes[] = 'has-code-block-heading';
+        $wrap_classes[] = 'has-code-block-heading';
+        $attrs['data-code-block-heading'] = $heading;
+    }
+
+    $attr_output = '';
+    foreach ((array) $attrs as $attr_name => $attr_value) {
+        if ($attr_value === '' || $attr_value === null) {
+            continue;
+        }
+
+        $attr_output .= ' ' . esc_attr($attr_name) . '="' . esc_attr($attr_value) . '"';
+    }
+
+    $output = '<div class="' . esc_attr(trim(implode(' ', array_filter($wrap_classes)))) . '"' . $attr_output . '>';
+
+    if ($heading !== '') {
+        $output .= '<div class="changelog-code-block-title">' . esc_html($heading) . '</div>';
+    }
+
+    $output .= '<pre class="' . esc_attr(trim(implode(' ', $classes))) . '"><code>' . esc_html($code) . '</code></pre>';
+    $output .= '</div>';
+
+    return $output;
+}
+
+function rup_changelogger_render_text_paragraphs($text) {
+    $text = str_replace(["\r\n", "\r"], "\n", trim((string) $text));
 
     if ($text === '') {
         return '';
     }
 
-    $paragraphs = preg_split('/
-\s*
-/', $text);
+    $paragraphs = preg_split('/\n\s*\n/', $text);
     $output = '';
 
     foreach ($paragraphs as $paragraph) {
@@ -187,11 +259,142 @@ function rup_changelogger_render_text_block($text) {
             continue;
         }
 
-        $lines = array_map('trim', explode("
-", $paragraph));
+        $lines = array_map('trim', explode("\n", $paragraph));
         $linked_lines = array_map('rup_changelogger_linkify_text', $lines);
         $output .= '<p>' . implode('<br>', $linked_lines) . '</p>';
     }
+
+    return $output;
+}
+
+function rup_changelogger_count_code_blocks_in_text($text) {
+    $text = str_replace(["\r\n", "\r"], "\n", trim((string) $text));
+
+    if ($text === '') {
+        return 0;
+    }
+
+    $lines = explode("\n", $text);
+    $count = 0;
+    $in_code_block = false;
+
+    foreach ($lines as $line) {
+        $trimmed = trim($line);
+
+        if ($in_code_block) {
+            if (rup_changelogger_is_code_block_end($trimmed)) {
+                $in_code_block = false;
+            }
+            continue;
+        }
+
+        $code_marker = rup_changelogger_parse_block_marker($trimmed, ['code', 'example', 'snippet']);
+        if ($code_marker) {
+            $count++;
+            $in_code_block = true;
+        }
+    }
+
+    return $count;
+}
+
+function rup_changelogger_render_text_block($text, $heading = '', &$code_block_global_index = null) {
+    $text = str_replace(["\r\n", "\r"], "\n", trim((string) $text));
+    $heading = trim((string) $heading);
+
+    if ($text === '' && $heading === '') {
+        return '';
+    }
+
+    $lines = explode("\n", $text);
+    $output = '';
+    $normal_lines = [];
+    $code_lines = [];
+    $code_heading = '';
+    $in_code_block = false;
+    $inline_code_index = 0;
+    $inline_code_total = rup_changelogger_count_code_blocks_in_text($text);
+
+    if ($heading !== '') {
+        $output .= '<div class="changelog-text-block-title">' . esc_html($heading) . '</div>';
+    }
+
+    $flush_normal = function() use (&$output, &$normal_lines) {
+        $normal = trim(implode("\n", $normal_lines));
+
+        if ($normal !== '') {
+            $output .= rup_changelogger_render_text_paragraphs($normal);
+        }
+
+        $normal_lines = [];
+    };
+
+    $flush_code = function() use (&$output, &$code_lines, &$code_heading, &$inline_code_index, $inline_code_total, &$code_block_global_index) {
+        $code = rtrim(implode("\n", $code_lines));
+
+        if ($code !== '') {
+            $inline_code_index++;
+            $from_bottom = max(1, $inline_code_total - $inline_code_index + 1);
+
+            $classes = [
+                'changelog-code-block-inline',
+                'changelog-code-block-in-text',
+                'changelog-code-block-in-text-' . $inline_code_index,
+                'changelog-code-block-from-top-' . $inline_code_index,
+                'changelog-code-block-from-bottom-' . $from_bottom,
+                $inline_code_index === 1 ? 'changelog-code-block-first' : '',
+                $inline_code_index === $inline_code_total ? 'changelog-code-block-last' : '',
+            ];
+
+            $attrs = [
+                'data-code-block-index' => $inline_code_index,
+                'data-code-block-from-bottom' => $from_bottom,
+            ];
+
+            if ($code_block_global_index !== null) {
+                $code_block_global_index++;
+                $classes[] = 'changelog-code-block-global-' . $code_block_global_index;
+                $attrs['data-code-block-global-index'] = $code_block_global_index;
+            }
+
+            $output .= rup_changelogger_render_code_block($code, $classes, $attrs, $code_heading);
+        }
+
+        $code_lines = [];
+        $code_heading = '';
+    };
+
+    foreach ($lines as $line) {
+        $trimmed = trim($line);
+
+        if ($in_code_block) {
+            if (rup_changelogger_is_code_block_end($trimmed)) {
+                $flush_code();
+                $in_code_block = false;
+                continue;
+            }
+
+            $code_lines[] = $line;
+            continue;
+        }
+
+        $code_marker = rup_changelogger_parse_block_marker($trimmed, ['code', 'example', 'snippet']);
+        if ($code_marker) {
+            $flush_normal();
+            $in_code_block = true;
+            $code_heading = $code_marker['heading'];
+            $code_lines = [];
+            continue;
+        }
+
+        $normal_lines[] = $line;
+    }
+
+    if ($in_code_block) {
+        $flush_code();
+    }
+
+    $flush_normal();
 
     return $output;
 }
@@ -308,28 +511,81 @@ function rup_changelogger_parse_plain_changelog($text) {
     $current_entries = [];
     $in_text_block = false;
     $text_block_lines = [];
+    $text_block_heading = '';
+    $in_code_block = false;
+    $code_block_context = '';
+    $code_block_lines = [];
+    $code_block_heading = '';
 
     $version_pattern = rup_changelogger_get_version_pattern();
 
-    $flush_text_block = function() use (&$current_entries, &$text_block_lines, &$in_text_block) {
+    $flush_text_block = function() use (&$current_entries, &$text_block_lines, &$text_block_heading, &$in_text_block) {
         $text = trim(implode("\n", $text_block_lines));
 
-        if ($text !== '') {
+        if ($text !== '' || $text_block_heading !== '') {
             $current_entries[] = [
                 'type'    => 'Text',
                 'text'    => $text,
+                'heading' => $text_block_heading,
                 'display' => 'block',
             ];
         }
 
         $text_block_lines = [];
+        $text_block_heading = '';
         $in_text_block = false;
+    };
+
+    $flush_code_block = function() use (&$current_entries, &$code_block_lines, &$code_block_heading, &$in_code_block, &$code_block_context) {
+        $code = rtrim(implode("\n", $code_block_lines));
+
+        if ($code !== '' || $code_block_heading !== '') {
+            $current_entries[] = [
+                'type'    => 'Code',
+                'text'    => $code,
+                'heading' => $code_block_heading,
+                'display' => 'code',
+            ];
+        }
+
+        $code_block_lines = [];
+        $code_block_heading = '';
+        $in_code_block = false;
+        $code_block_context = '';
     };
 
     foreach ($lines as $line) {
         $line = trim($line);
 
+        if ($in_code_block) {
+            if (rup_changelogger_is_code_block_end($line)) {
+                if ($code_block_context === 'text') {
+                    $text_block_lines[] = $line;
+                    $in_code_block = false;
+                    $code_block_context = '';
+                } else {
+                    $flush_code_block();
+                }
+                continue;
+            }
+
+            if ($code_block_context === 'text') {
+                $text_block_lines[] = $line;
+            } else {
+                $code_block_lines[] = $line;
+            }
+            continue;
+        }
+
         if ($in_text_block) {
+            $code_marker = rup_changelogger_parse_block_marker($line, ['code', 'example', 'snippet']);
+            if ($code_marker) {
+                $text_block_lines[] = 'Code:' . ($code_marker['heading'] !== '' ? ' ' . $code_marker['heading'] : '');
+                $in_code_block = true;
+                $code_block_context = 'text';
+                continue;
+            }
+
             if (rup_changelogger_is_text_block_end($line)) {
                 $flush_text_block();
                 continue;
@@ -412,9 +668,18 @@ function rup_changelogger_parse_plain_changelog($text) {
             $entry_text = trim($matches[2]);
             $normalized_type = isset($type_aliases[$raw_type]) ? $type_aliases[$raw_type] : ucwords($raw_type);
 
-            if (rup_changelogger_is_text_block_type($raw_type) && $entry_text === '') {
+            if (rup_changelogger_is_text_block_type($raw_type)) {
                 $in_text_block = true;
+                $text_block_heading = $entry_text;
                 $text_block_lines = [];
+                continue;
+            }
+
+            if (rup_changelogger_is_code_block_type($raw_type)) {
+                $in_code_block = true;
+                $code_block_context = 'entry';
+                $code_block_heading = $entry_text;
+                $code_block_lines = [];
                 continue;
             }
 
@@ -427,6 +692,10 @@ function rup_changelogger_parse_plain_changelog($text) {
                 'text' => $entry_text,
             ];
         }
+    }
+
+    if ($in_code_block && $code_block_context === 'entry') {
+        $flush_code_block();
     }
 
     if ($in_text_block) {
@@ -463,29 +732,101 @@ function rup_changelogger_parse_markdown_changelog($text) {
     $current_type = '';
     $in_text_block = false;
     $text_block_lines = [];
+    $text_block_heading = '';
+    $in_code_block = false;
+    $code_block_context = '';
+    $code_block_lines = [];
+    $code_block_heading = '';
 
     $version_pattern = rup_changelogger_get_version_pattern();
 
-    $flush_text_block = function() use (&$current_entries, &$text_block_lines, &$in_text_block) {
+    $flush_text_block = function() use (&$current_entries, &$text_block_lines, &$text_block_heading, &$in_text_block) {
         $text = trim(implode("\n", $text_block_lines));
 
-        if ($text !== '') {
+        if ($text !== '' || $text_block_heading !== '') {
             $current_entries[] = [
                 'type'    => 'Text',
                 'text'    => $text,
+                'heading' => $text_block_heading,
                 'display' => 'block',
             ];
         }
 
         $text_block_lines = [];
+        $text_block_heading = '';
         $in_text_block = false;
+    };
+
+    $flush_code_block = function() use (&$current_entries, &$code_block_lines, &$code_block_heading, &$in_code_block, &$code_block_context) {
+        $code = rtrim(implode("\n", $code_block_lines));
+
+        if ($code !== '' || $code_block_heading !== '') {
+            $current_entries[] = [
+                'type'    => 'Code',
+                'text'    => $code,
+                'heading' => $code_block_heading,
+                'display' => 'code',
+            ];
+        }
+
+        $code_block_lines = [];
+        $code_block_heading = '';
+        $in_code_block = false;
+        $code_block_context = '';
     };
 
     foreach ($lines as $line) {
         $line = trim($line);
         $normalized_line = preg_replace('/\s+/', ' ', $line);
 
+        if ($in_code_block) {
+            if (rup_changelogger_is_code_block_end($line) || preg_match('/^###\s+End\s*(?:Code|Example|Snippet)\s*$/i', $normalized_line)) {
+                if ($code_block_context === 'text') {
+                    $text_block_lines[] = 'EndCode';
+                    $in_code_block = false;
+                    $code_block_context = '';
+                } else {
+                    $flush_code_block();
+                }
+                continue;
+            }
+
+            if ($code_block_context === 'text') {
+                $text_block_lines[] = $line;
+            } else {
+                $code_block_lines[] = $line;
+            }
+            continue;
+        }
+
         if ($in_text_block) {
+            if (preg_match('/^###\s+(.+)$/', $normalized_line, $code_heading_match)) {
+                $code_heading_text = trim($code_heading_match[1]);
+                $code_marker = rup_changelogger_parse_block_marker($code_heading_text, ['code', 'example', 'snippet']);
+
+                if (!$code_marker && rup_changelogger_is_code_block_type($code_heading_text)) {
+                    $code_marker = [
+                        'type'    => strtolower($code_heading_text),
+                        'heading' => '',
+                    ];
+                }
+
+                if ($code_marker) {
+                    $text_block_lines[] = 'Code:' . ($code_marker['heading'] !== '' ? ' ' . $code_marker['heading'] : '');
+                    $in_code_block = true;
+                    $code_block_context = 'text';
+                    continue;
+                }
+            }
+
+            $code_marker = rup_changelogger_parse_block_marker($line, ['code', 'example', 'snippet']);
+            if ($code_marker) {
+                $text_block_lines[] = 'Code:' . ($code_marker['heading'] !== '' ? ' ' . $code_marker['heading'] : '');
+                $in_code_block = true;
+                $code_block_context = 'text';
+                continue;
+            }
+
             if (preg_match('/^##\s+.+$/', $normalized_line) || preg_match('/^###\s+.+$/', $normalized_line)) {
                 $flush_text_block();
             } else {
@@ -557,12 +898,20 @@ function rup_changelogger_parse_markdown_changelog($text) {
         }
          // Markdown type heading
         if (preg_match('/^###\s+(.+)$/', $normalized_line, $matches)) {
-            $raw_type = strtolower(trim($matches[1]));
+            $heading_text = trim($matches[1]);
+            $marker = rup_changelogger_parse_block_marker($heading_text, ['text', 'block', 'paragraph', 'code', 'example', 'snippet']);
+            $raw_type = $marker ? $marker['type'] : strtolower($heading_text);
             $current_type = isset($type_aliases[$raw_type]) ? $type_aliases[$raw_type] : ucwords($raw_type);
 
             if (rup_changelogger_is_text_block_type($raw_type)) {
                 $in_text_block = true;
+                $text_block_heading = $marker ? $marker['heading'] : '';
                 $text_block_lines = [];
+            } elseif (rup_changelogger_is_code_block_type($raw_type)) {
+                $in_code_block = true;
+                $code_block_context = 'entry';
+                $code_block_heading = $marker ? $marker['heading'] : '';
+                $code_block_lines = [];
             }
 
             continue;
@@ -577,6 +926,10 @@ function rup_changelogger_parse_markdown_changelog($text) {
             ];
             continue;
         }
+    }
+
+    if ($in_code_block && $code_block_context === 'entry') {
+        $flush_code_block();
     }
 
     if ($in_text_block) {
@@ -673,6 +1026,7 @@ function rup_changelogger_render_changelog_timeline($versions, $atts = []) {
     $output .= '<div class="changelog-timeline">';
 
     $text_block_global_index = 0;
+    $code_block_global_index = 0;
 
     foreach ($versions as $index => $version_data) {
         $version = isset($version_data['version']) ? $version_data['version'] : '';
@@ -736,6 +1090,7 @@ function rup_changelogger_render_changelog_timeline($versions, $atts = []) {
         $output .= '<ul class="changelog-items">';
 
         $text_block_total = 0;
+        $code_block_total = 0;
         foreach ($entries as $entry) {
             $entry_type    = isset($entry['type']) ? $entry['type'] : 'Info';
             $entry_display = isset($entry['display']) ? $entry['display'] : 'item';
@@ -744,15 +1099,58 @@ function rup_changelogger_render_changelog_timeline($versions, $atts = []) {
             if ($entry_display === 'block' || $entry_slug === 'text') {
                 $text_block_total++;
             }
+
+            if ($entry_display === 'code' || $entry_slug === 'code') {
+                $code_block_total++;
+            }
         }
 
         $text_block_index = 0;
+        $code_block_index = 0;
 
         foreach ($entries as $entry) {
             $type      = isset($entry['type']) ? $entry['type'] : 'Info';
             $text      = isset($entry['text']) ? $entry['text'] : '';
+            $heading   = isset($entry['heading']) ? $entry['heading'] : '';
             $display   = isset($entry['display']) ? $entry['display'] : 'item';
             $type_slug = rup_changelogger_slugify_type($type);
+
+            if ($display === 'code' || $type_slug === 'code') {
+                $code_block_index++;
+                $code_block_global_index++;
+                $code_block_from_end = max(1, $code_block_total - $code_block_index + 1);
+
+                $code_block_classes = [
+                    'changelog-item',
+                    'changelog-code-block-item',
+                    'changelog-code-block-item-' . $code_block_index,
+                    'changelog-code-block-global-' . $code_block_global_index,
+                    'changelog-code-block-from-top-' . $code_block_index,
+                    'changelog-code-block-from-bottom-' . $code_block_from_end,
+                    $code_block_index === 1 ? 'changelog-code-block-first' : '',
+                    $code_block_index === $code_block_total ? 'changelog-code-block-last' : '',
+                ];
+
+                $code_block_inner_classes = [
+                    'changelog-code-block-' . $code_block_index,
+                    'changelog-code-block-global-' . $code_block_global_index,
+                    'changelog-code-block-from-top-' . $code_block_index,
+                    'changelog-code-block-from-bottom-' . $code_block_from_end,
+                    $code_block_index === 1 ? 'changelog-code-block-first' : '',
+                    $code_block_index === $code_block_total ? 'changelog-code-block-last' : '',
+                ];
+
+                $code_block_attrs = [
+                    'data-code-block-index' => $code_block_index,
+                    'data-code-block-global-index' => $code_block_global_index,
+                    'data-code-block-from-bottom' => $code_block_from_end,
+                ];
+
+                $output .= '<li class="' . esc_attr(trim(implode(' ', array_filter($code_block_classes)))) . '" data-type="' . esc_attr($type_slug) . '" data-code-block-index="' . esc_attr($code_block_index) . '" data-code-block-global-index="' . esc_attr($code_block_global_index) . '" data-code-block-from-bottom="' . esc_attr($code_block_from_end) . '">';
+                $output .= rup_changelogger_render_code_block($text, $code_block_inner_classes, $code_block_attrs, $heading);
+                $output .= '</li>';
+                continue;
+            }
 
             if ($display === 'block' || $type_slug === 'text') {
                 $text_block_index++;
@@ -781,7 +1179,7 @@ function rup_changelogger_render_changelog_timeline($versions, $atts = []) {
                 ];
 
                 $output .= '<li class="' . esc_attr(trim(implode(' ', array_filter($text_block_classes)))) . '" data-type="' . esc_attr($type_slug) . '" data-text-block-index="' . esc_attr($text_block_index) . '" data-text-block-global-index="' . esc_attr($text_block_global_index) . '" data-text-block-from-bottom="' . esc_attr($text_block_from_end) . '">';
-                $output .= '<div class="' . esc_attr(trim(implode(' ', array_filter($text_block_inner_classes)))) . '" data-text-block-global-index="' . esc_attr($text_block_global_index) . '">' . rup_changelogger_render_text_block($text) . '</div>';
+                $output .= '<div class="' . esc_attr(trim(implode(' ', array_filter($text_block_inner_classes)))) . '" data-text-block-global-index="' . esc_attr($text_block_global_index) . '">' . rup_changelogger_render_text_block($text, $heading, $code_block_global_index) . '</div>';
                 $output .= '</li>';
                 continue;
             }
@@ -1105,12 +1503,79 @@ function rup_changelogger_enqueue_styles() {
         min-width: 0;
     }
 
+    .changelog-text-block-title {
+        display: inline-block;
+        margin: 0 0 12px 0;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(0,0,0,0.06);
+        color: inherit;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.2;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
     .changelog-text-block p {
         margin: 0 0 12px 0;
     }
 
     .changelog-text-block p:last-child {
         margin-bottom: 0;
+    }
+
+    .changelog-code-block-item {
+        grid-template-columns: 1fr;
+    }
+
+    .changelog-code-block-wrap {
+        display: block;
+        margin: 12px 0;
+        min-width: 0;
+    }
+
+    .changelog-code-block-title {
+        display: inline-block;
+        margin: 0;
+        padding: 7px 12px;
+        border-radius: 8px 8px 0 0;
+        background: #111827;
+        color: #f9fafb;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.2;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .changelog-code-block {
+        display: block;
+        margin: 0;
+        padding: 14px 16px;
+        background: #1f2937;
+        color: #f9fafb;
+        border-radius: 8px;
+        overflow-x: auto;
+        white-space: pre;
+        font-family: Consolas, Monaco, monospace;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+
+    .changelog-code-block-wrap.has-code-block-heading .changelog-code-block {
+        border-top-left-radius: 0;
+    }
+
+    .changelog-text-block .changelog-code-block-wrap {
+        margin: 14px 0;
+    }
+
+    .changelog-code-block code {
+        color: inherit;
+        background: transparent;
+        padding: 0;
+        font: inherit;
     }
 
     .rup-changelog-highlight {

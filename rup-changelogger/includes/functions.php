@@ -37,6 +37,10 @@ function rup_changelogger_get_default_type_aliases() {
         'known'         => 'Known Issue',
         'warning'       => 'Warning',
         'warn'          => 'Warning',
+        'info'          => 'Info',
+        'text'          => 'Text',
+        'block'         => 'Text',
+        'paragraph'     => 'Text',
     ]);
 }
 
@@ -103,6 +107,93 @@ function rup_changelogger_version_anchor($version) {
     }
 
     return 'changelog-' . $anchor;
+}
+
+function rup_changelogger_linkify_text($text) {
+    $text = (string) $text;
+
+    if ($text === '') {
+        return '';
+    }
+
+    $pattern = '/((?:https?:\/\/|www\.)[^\s<]+)/i';
+    $parts = preg_split($pattern, $text, -1, PREG_SPLIT_DELIM_CAPTURE);
+
+    if (empty($parts)) {
+        return esc_html($text);
+    }
+
+    $output = '';
+
+    foreach ($parts as $part) {
+        if ($part === '') {
+            continue;
+        }
+
+        if (preg_match('/^(?:https?:\/\/|www\.)/i', $part)) {
+            $trailing = '';
+
+            while ($part !== '' && preg_match('/[.,!?;:)]+$/', $part, $m)) {
+                $trailing = $m[0] . $trailing;
+                $part = substr($part, 0, -strlen($m[0]));
+            }
+
+            if ($part === '') {
+                $output .= esc_html($trailing);
+                continue;
+            }
+
+            $href = preg_match('/^www\./i', $part) ? 'https://' . $part : $part;
+
+            $output .= '<a href="' . esc_url($href) . '" target="_blank" rel="noopener noreferrer">' . esc_html($part) . '</a>';
+            $output .= esc_html($trailing);
+            continue;
+        }
+
+        $output .= esc_html($part);
+    }
+
+    return $output;
+}
+
+
+function rup_changelogger_is_text_block_type($type) {
+    return in_array(strtolower(trim((string) $type)), ['text', 'block', 'paragraph'], true);
+}
+
+function rup_changelogger_is_text_block_end($line) {
+    return (bool) preg_match('/^end\s*(?:text|block|paragraph)$/i', trim((string) $line));
+}
+
+function rup_changelogger_render_text_block($text) {
+    $text = str_replace(["
+", "
+"], "
+", trim((string) $text));
+
+    if ($text === '') {
+        return '';
+    }
+
+    $paragraphs = preg_split('/
+\s*
+/', $text);
+    $output = '';
+
+    foreach ($paragraphs as $paragraph) {
+        $paragraph = trim($paragraph);
+
+        if ($paragraph === '') {
+            continue;
+        }
+
+        $lines = array_map('trim', explode("
+", $paragraph));
+        $linked_lines = array_map('rup_changelogger_linkify_text', $lines);
+        $output .= '<p>' . implode('<br>', $linked_lines) . '</p>';
+    }
+
+    return $output;
 }
 
 /**
@@ -215,11 +306,38 @@ function rup_changelogger_parse_plain_changelog($text) {
     $current_version = '';
     $current_date = '';
     $current_entries = [];
+    $in_text_block = false;
+    $text_block_lines = [];
 
     $version_pattern = rup_changelogger_get_version_pattern();
 
+    $flush_text_block = function() use (&$current_entries, &$text_block_lines, &$in_text_block) {
+        $text = trim(implode("\n", $text_block_lines));
+
+        if ($text !== '') {
+            $current_entries[] = [
+                'type'    => 'Text',
+                'text'    => $text,
+                'display' => 'block',
+            ];
+        }
+
+        $text_block_lines = [];
+        $in_text_block = false;
+    };
+
     foreach ($lines as $line) {
         $line = trim($line);
+
+        if ($in_text_block) {
+            if (rup_changelogger_is_text_block_end($line)) {
+                $flush_text_block();
+                continue;
+            }
+
+            $text_block_lines[] = $line;
+            continue;
+        }
 
         if ($line === '') {
             continue;
@@ -289,17 +407,30 @@ function rup_changelogger_parse_plain_changelog($text) {
             continue;
         }
 
-        if (preg_match('/^([a-zA-Z\s]+):\s+(.+)$/', $normalized_line, $matches)) {
+        if (preg_match('/^([a-zA-Z\s]+):\s*(.*)$/', $normalized_line, $matches)) {
             $raw_type   = strtolower(trim($matches[1]));
             $entry_text = trim($matches[2]);
-
             $normalized_type = isset($type_aliases[$raw_type]) ? $type_aliases[$raw_type] : ucwords($raw_type);
+
+            if (rup_changelogger_is_text_block_type($raw_type) && $entry_text === '') {
+                $in_text_block = true;
+                $text_block_lines = [];
+                continue;
+            }
+
+            if ($entry_text === '') {
+                continue;
+            }
 
             $current_entries[] = [
                 'type' => $normalized_type,
                 'text' => $entry_text,
             ];
         }
+    }
+
+    if ($in_text_block) {
+        $flush_text_block();
     }
 
     if (!empty($current_version) || !empty($current_entries)) {
@@ -330,17 +461,42 @@ function rup_changelogger_parse_markdown_changelog($text) {
     $current_date = '';
     $current_entries = [];
     $current_type = '';
+    $in_text_block = false;
+    $text_block_lines = [];
 
     $version_pattern = rup_changelogger_get_version_pattern();
 
+    $flush_text_block = function() use (&$current_entries, &$text_block_lines, &$in_text_block) {
+        $text = trim(implode("\n", $text_block_lines));
+
+        if ($text !== '') {
+            $current_entries[] = [
+                'type'    => 'Text',
+                'text'    => $text,
+                'display' => 'block',
+            ];
+        }
+
+        $text_block_lines = [];
+        $in_text_block = false;
+    };
+
     foreach ($lines as $line) {
         $line = trim($line);
+        $normalized_line = preg_replace('/\s+/', ' ', $line);
+
+        if ($in_text_block) {
+            if (preg_match('/^##\s+.+$/', $normalized_line) || preg_match('/^###\s+.+$/', $normalized_line)) {
+                $flush_text_block();
+            } else {
+                $text_block_lines[] = $line;
+                continue;
+            }
+        }
 
         if ($line === '') {
             continue;
         }
-
-        $normalized_line = preg_replace('/\s+/', ' ', $line);
 
         // Markdown version header
         if (preg_match('/^##\s+(.+)$/', $normalized_line, $matches)) {
@@ -403,6 +559,12 @@ function rup_changelogger_parse_markdown_changelog($text) {
         if (preg_match('/^###\s+(.+)$/', $normalized_line, $matches)) {
             $raw_type = strtolower(trim($matches[1]));
             $current_type = isset($type_aliases[$raw_type]) ? $type_aliases[$raw_type] : ucwords($raw_type);
+
+            if (rup_changelogger_is_text_block_type($raw_type)) {
+                $in_text_block = true;
+                $text_block_lines = [];
+            }
+
             continue;
         }
         // Markdown bullet entry
@@ -415,6 +577,10 @@ function rup_changelogger_parse_markdown_changelog($text) {
             ];
             continue;
         }
+    }
+
+    if ($in_text_block) {
+        $flush_text_block();
     }
 
     if (!empty($current_version) || !empty($current_entries)) {
@@ -570,7 +736,15 @@ function rup_changelogger_render_changelog_timeline($versions, $atts = []) {
         foreach ($entries as $entry) {
             $type      = isset($entry['type']) ? $entry['type'] : 'Info';
             $text      = isset($entry['text']) ? $entry['text'] : '';
+            $display   = isset($entry['display']) ? $entry['display'] : 'item';
             $type_slug = rup_changelogger_slugify_type($type);
+
+            if ($display === 'block' || $type_slug === 'text') {
+                $output .= '<li class="changelog-item changelog-text-block-item" data-type="' . esc_attr($type_slug) . '">';
+                $output .= '<div class="changelog-text-block">' . rup_changelogger_render_text_block($text) . '</div>';
+                $output .= '</li>';
+                continue;
+            }
 
             $output .= '<li class="changelog-item" data-type="' . esc_attr($type_slug) . '">';
 
@@ -578,7 +752,7 @@ function rup_changelogger_render_changelog_timeline($versions, $atts = []) {
                 $output .= '<span class="changelog-label ' . esc_attr($type_slug) . '">' . esc_html($type) . '</span>';
             }
 
-            $output .= '<span class="changelog-text">' . esc_html($text) . '</span>';
+            $output .= '<span class="changelog-text">' . rup_changelogger_linkify_text($text) . '</span>';
             $output .= '</li>';
         }
 
@@ -866,6 +1040,28 @@ function rup_changelogger_enqueue_styles() {
     .changelog-text {
         overflow-wrap: anywhere;
         min-width: 0;
+    }
+
+    .changelog-text-block-item {
+        grid-template-columns: 1fr;
+    }
+
+    .changelog-text-block {
+        background: #f8f9fa;
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        padding: 14px 16px;
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+        min-width: 0;
+    }
+
+    .changelog-text-block p {
+        margin: 0 0 12px 0;
+    }
+
+    .changelog-text-block p:last-child {
+        margin-bottom: 0;
     }
 
     .rup-changelog-highlight {

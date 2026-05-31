@@ -1,34 +1,36 @@
-Changelog Timeline for WordPress
-================================
+# Changelog Timeline for WordPress
 
-📌 Overview
-----------
+## Overview
 
 Changelog Timeline is a WordPress plugin that dynamically fetches and displays
 changelog data from an external source, caches it for performance, and provides
 shortcode-based output.
 
-This version keeps the plugin builder-agnostic while adding broader version
-parsing, improved defaults, Markdown support, and multiple display layouts.
+Version 2.0 expands the plugin with broader version parsing, month/year date
+support, Markdown support, multiple layouts, and rich release-note text blocks.
 
-🚀 Features
-----------
+---
+
+## WordPress.org Tags
+
+changelog, changelog timeline, release notes, version history, plugin updates,
+developer tools, documentation, markdown, shortcode, github
+
+---
+
+## Features
 
 - Fetches changelogs from external URLs and formats them into a visual changelog
 - Transient caching per URL + shortcode configuration
 - Builder-agnostic shortcode output
-- Multiple layouts: `timeline`, `cards`, and `compact`
+- Multiple layouts: timeline, cards, and compact
 - Supports plain text and Markdown changelog formats
 - Auto-detection for Markdown changelogs
-- Expanded version parsing for semantic versioning, including:
-  - `1.0.0`
-  - `v1.0.0`
-  - `1.0.0-alpha`
-  - `1.0.0-beta.1`
-  - `1.0.0-rc1`
-  - `1.0.0-dev`
-  - `1.0.0-pre`
-- Expanded changelog type support
+- Expanded semantic version parsing
+- Month/year version date support
+- Label-less release note text blocks
+- Automatic URL detection inside text blocks
+- Global and per-release text block CSS classes
 - Optional front-end filtering buttons
 - Optional collapsible versions
 - Optional summary pills per release
@@ -37,116 +39,167 @@ parsing, improved defaults, Markdown support, and multiple display layouts.
 - Optional secure URL-based cache clearing
 - Customizable via filters and CSS
 
-🛠️ Installation
---------------
+---
 
-1. Upload the plugin files to the `/wp-content/plugins/changelog-timeline/`
-   directory.
+## Installation
 
-2. Activate the plugin through WordPress admin.
+1. Upload the plugin files to `/wp-content/plugins/changelog-timeline/`
+2. Activate the plugin through WordPress Admin.
+3. Add the shortcode to any page, post, template, or builder.
 
-3. Use the shortcode in any post or page.
+---
 
-📚 Shortcode Usage
------------------
+## Shortcode Usage
 
 ### Basic
 
 [rup_changelogger_timeline url='https://yourdomain.com/changelog.txt']
 
-### Advanced Example
+### Advanced
 
 [rup_changelogger_timeline url="https://yourdomain.com/changelog.txt" title="Plugin Updates" layout="cards" format="auto" show_date="yes" show_version="yes" show_labels="yes" show_filters="yes" show_summary="no" collapsible="no" filter="" limit="0" order="desc" cache_days="7"]
 
-### Current Default Behaviour
+### Available Options
 
-Using only:
+- url
+- title
+- layout
+- format
+- show_date
+- show_version
+- show_labels
+- show_filters
+- show_summary
+- collapsible
+- filter
+- limit
+- order
+- cache_days
+- class
 
-[rup_changelogger_timeline url='https://yourdomain.com/changelog.txt']
+---
 
-will output:
+## Supported Changelog Formats
 
-- `layout="timeline"`
-- `format="auto"`
-- `show_date="yes"`
-- `show_version="yes"`
-- `show_labels="yes"`
-- `show_filters="no"`
-- `show_summary="no"`
-- `collapsible="no"`
-- `limit="0"`
-- `order="desc"`
-- `cache_days="7"`
+### Plain Text
 
-### Available Shortcode Options
-
-- `url` → required changelog source
-- `title` → optional heading above the changelog
-- `layout` → `timeline`, `cards`, or `compact`
-- `format` → `auto`, `plain`, or `markdown`
-- `show_date` → `yes` / `no`
-- `show_version` → `yes` / `no`
-- `show_labels` → `yes` / `no`
-- `show_filters` → `yes` / `no`
-- `show_summary` → `yes` / `no`
-- `collapsible` → `yes` / `no`
-- `filter` → comma-separated entry types, for example `Fixed,Security`
-- `limit` → number of versions to display, `0` = no limit
-- `order` → `desc` keeps source order, `asc` reverses it
-- `cache_days` → cache duration in days
-- `class` → add your own custom wrapper class
-
-🧾 Supported Changelog Formats
------------------------------
-
-### Plain Text Format
-
-Example:
-
+```txt
 Version 1.3.0-alpha (24 August 2025)
 New: Added cards layout
 Fixed: Corrected ordering logic
+```
 
-### Markdown Format
+### Markdown
 
-Example:
-
+```md
 ## 1.3.0-alpha - 24 August 2025
+
 ### New
 - Added cards layout
-- Added compact layout
 
 ### Fixed
 - Corrected ordering logic
+```
 
-🔢 Supported Version Styles
---------------------------
+---
 
-The parser now supports a much wider set of version formats, including:
+## Release Note Text Blocks (New in 2.0)
 
-- `1.0`
-- `1.0.0`
-- `v1.0.0`
-- `1.0.0-alpha`
-- `1.0.0-beta`
-- `1.0.0-beta.1`
-- `1.0.0-rc1`
-- `1.0.0-dev`
-- `1.0.0-pre`
-- `1.0.0-preview`
-- `1.0.0-canary`
-- `1.0.0-nightly`
-- `1.0.0-alpha+build`
+Text blocks allow rich release notes, migration instructions, upgrade notices,
+documentation references and general release commentary without using labels.
 
-🔧 Supported Changelog Types
----------------------------
+### Plain Text Text Blocks
+
+```txt
+= 2.0.0 May 2026 =
+
+Text:
+This release introduces the new text block system.
+
+Documentation:
+https://example.com/docs
+
+Migration guide:
+www.example.com/migrate
+
+No configuration changes are required.
+EndText
+
+New: Added text block support.
+```
+
+### Multiple Text Blocks
+
+```txt
+Text:
+Introduction note.
+EndText
+
+New: Added feature.
+
+Text:
+Migration instructions.
+EndText
+
+Fixed: Corrected issue.
+
+Text:
+Additional documentation.
+EndText
+```
+
+### Features
+
+- Multiple text blocks per release
+- Automatic URL detection and linking
+- Supports http, https and www URLs
+- Compatible with timeline, cards and compact layouts
+- Compatible with filters and collapsible releases
+- Ideal for release notes and upgrade guidance
+
+### Generated CSS Classes
+
+```html
+changelog-text-block
+changelog-text-block-1
+changelog-text-block-from-top-1
+changelog-text-block-from-bottom-2
+changelog-text-block-first
+changelog-text-block-last
+changelog-text-block-global-27
+```
+
+This allows targeting blocks globally or within individual releases.
+
+---
+
+## Supported Version Styles
+
+- 1.0
+- 1.0.0
+- v1.0.0
+- 1.0.0-alpha
+- 1.0.0-beta.1
+- 1.0.0-rc1
+- 1.0.0-dev
+- 1.0.0-pre
+- 1.0.0-preview
+- 1.0.0-canary
+- 1.0.0-nightly
+- 1.0.0-alpha+build
+- 2.0.0 May 2026
+
+---
+
+## Supported Changelog Types
 
 New, Added, Changed, Updated, Fixed, Hotfix, Tweaked, Improvement,
 Performance, Security, Deprecated, Removed, Breaking, Compatibility,
-Experimental, Known Issue, Warning, and Info fallback support.
+Experimental, Known Issue, Warning, and Info.
 
-🔧 Filters
-----------
+---
+
+## Filters
 
 ### Custom CSS
 
@@ -164,7 +217,7 @@ add_filter('rup_changelogger_cache_duration', function() {
 });
 ```
 
-### Label Colors
+### Label Colours
 
 ```php
 add_filter('rup_changelogger_label_colors', function($colors) {
@@ -173,98 +226,51 @@ add_filter('rup_changelogger_label_colors', function($colors) {
 });
 ```
 
-### Type Aliases
+---
 
-```php
-add_filter('rup_changelogger_type_aliases', function($types) {
-    $types['bug'] = 'Fixed';
-    return $types;
-});
-```
-
-### Secret Key
-
-```php
-add_filter('rup_changelogger_secret_key', function() {
-    return 'Batman';
-});
-```
-
-### Enable Public Cache Clearing
-
-```php
-add_filter('rup_changelogger_enable_public_cache_clear', '__return_true');
-```
-
-📢 Cache Clearing
-----------------
+## Cache Clearing
 
 ### Admin Toolbar
-Click **Clear Changelog Cache** in the WordPress admin toolbar.
+
+Use the "Clear Changelog Cache" admin toolbar item.
 
 ### URL Method
 
-Use:
-
 `?rup_clear_cache=1&key=YOUR_SECRET_KEY`
 
-Example:
+---
 
-`https://yourwebsite.com/?rup_clear_cache=1&key=YOUR_SECRET_KEY`
-
-🎨 Styling
----------
-
-All label colours are customizable via filter or CSS.
-
-Example:
-
-```css
-.changelog-label.fixed {
-    background: #ff0000;
-}
-```
-
-📦 Layout Examples
------------------
+## Layouts
 
 ### Timeline
 
-```php
-[rup_changelogger_timeline url="https://yourdomain.com/changelog.txt" layout="timeline"]
-```
+[rup_changelogger_timeline layout="timeline"]
 
 ### Cards
 
-```php
-[rup_changelogger_timeline url="https://yourdomain.com/changelog.txt" layout="cards"]
-```
+[rup_changelogger_timeline layout="cards"]
 
 ### Compact
 
-```php
-[rup_changelogger_timeline url="https://yourdomain.com/changelog.txt" layout="compact"]
-```
+[rup_changelogger_timeline layout="compact"]
 
-### Markdown Cards Example
+---
 
-```php
-[rup_changelogger_timeline url="https://yourdomain.com/CHANGELOG.md" format="markdown" layout="cards"]
-```
+## Version 2.0 Highlights
 
-✨ Highlights of This Version
----------------------------
+- Month/year version header support
+- Markdown support improvements
+- Rich release note text blocks
+- Automatic URL linking
+- Per-release text block targeting
+- Global text block targeting
+- Enhanced styling capabilities
+- Cards and compact layouts
+- Expanded semantic version support
 
-- Fixed version ordering behaviour
-- Added Markdown changelog support
-- Added `cards` and `compact` layouts
-- Added broader semantic version parsing
-- Added `show_summary` option
-- Improved default shortcode behaviour
-- Kept shortcode-first, builder-agnostic workflow
+---
 
-🎯 Future Enhancements
----------------------
+## Future Enhancements
 
 - Admin settings page
 - More layouts
@@ -272,7 +278,120 @@ Example:
 - Icons per change type
 - Date formatting controls
 
-🤝 Contributing
---------------
+---
 
-Contributions and feedback are welcome!
+## Contributing
+
+Contributions and feedback are welcome.
+
+
+---
+
+
+# Styling Text Blocks
+
+Text blocks are intentionally designed to be highly customizable. Every text
+block receives a collection of helper classes that allow styling by position,
+order, or globally across the entire changelog.
+
+## Basic Release Notes Style
+
+```css
+.changelog-text-block {
+    padding: 16px 20px;
+    border-left: 4px solid #2271b1;
+    background: #f6f7f7;
+    border-radius: 4px;
+}
+```
+## WordPress Admin Notice Style
+
+```css
+.changelog-text-block {
+    padding: 12px 16px;
+    background: #fff;
+    border-left: 4px solid #2271b1;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05);
+}
+
+.changelog-text-block::before {
+    content: "ℹ Release Notes";
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+```
+
+## Enhanced Release Notes Card
+
+```css
+.changelog-text-block {
+    position: relative;
+    padding: 18px 22px;
+    border-radius: 12px;
+    background: linear-gradient(
+        180deg,
+        rgba(0,0,0,0.02),
+        rgba(0,0,0,0.04)
+    );
+    border-left: 5px solid #4f46e5;
+    box-shadow:
+        0 2px 8px rgba(0,0,0,0.05),
+        inset 0 1px 0 rgba(255,255,255,0.5);
+}
+
+.changelog-text-block::before {
+    content: "Release Notes";
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    opacity: .65;
+    margin-bottom: 10px;
+}
+```
+
+## Position-Based Styling
+
+Style the first or last text block in each release:
+
+```css
+.changelog-text-block-first {
+    border-left-color: #16a34a;
+}
+
+.changelog-text-block-last {
+    border-left-color: #f59e0b;
+}
+```
+
+Style blocks based on position within a release:
+
+```css
+.changelog-text-block-2 {
+    background: #fff8dc;
+}
+
+.changelog-text-block-from-bottom-2 {
+    border-left-color: #dc3545;
+}
+```
+
+## Global Text Block Styling
+
+Every text block receives a unique global class:
+
+```html
+changelog-text-block-global-1
+changelog-text-block-global-2
+changelog-text-block-global-3
+```
+
+This allows styling specific release notes anywhere on the page:
+
+```css
+.changelog-text-block-global-27 {
+    border-left-color: #9333ea;
+}
+```

@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Changelogger
  * Description:       A simple shortcode generation for remote text files in to changelogs
- * Tested up to:      6.9.4
+ * Tested up to:      7.0
  * Requires at least: 6.5
  * Requires PHP:      8.0
  * Version:           1.30.1

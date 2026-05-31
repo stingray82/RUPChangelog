@@ -243,6 +243,12 @@ function rup_changelogger_parse_plain_changelog($text) {
             $possible_date    = trim($m[2]);
             $matched_version  = true;
         }
+        // 2b) = 1.21 July 2025 =
+        elseif (preg_match('/^=\s*(' . $version_pattern . ')\s+([A-Za-z]+\s+\d{4})\s*=$/i', $normalized_line, $m)) {
+            $possible_version = trim($m[1]);
+            $possible_date    = trim($m[2]);
+            $matched_version  = true;
+        }
         // 3) = 2.8.3 =
         elseif (preg_match('/^=\s*(' . $version_pattern . ')\s*=$/i', $normalized_line, $m)) {
             $possible_version = trim($m[1]);
@@ -358,6 +364,12 @@ function rup_changelogger_parse_markdown_changelog($text) {
             }
             // 3) 3.0.0-preview 15 April 2026
             elseif (preg_match('/^(' . $version_pattern . ')\s+(\d{1,2}\s+[A-Za-z]+\s+\d{4})$/i', $header, $m)) {
+                $possible_version = trim($m[1]);
+                $possible_date    = trim($m[2]);
+                $matched_version  = true;
+            }
+            // 3b) 3.0.0-preview April 2026
+            elseif (preg_match('/^(' . $version_pattern . ')\s+([A-Za-z]+\s+\d{4})$/i', $header, $m)) {
                 $possible_version = trim($m[1]);
                 $possible_date    = trim($m[2]);
                 $matched_version  = true;

@@ -733,6 +733,19 @@ function rup_changelogger_render_changelog_timeline($versions, $atts = []) {
         $output .= '<div id="' . esc_attr($content_id) . '" class="' . esc_attr($content_classes) . '">';
         $output .= '<ul class="changelog-items">';
 
+        $text_block_total = 0;
+        foreach ($entries as $entry) {
+            $entry_type    = isset($entry['type']) ? $entry['type'] : 'Info';
+            $entry_display = isset($entry['display']) ? $entry['display'] : 'item';
+            $entry_slug    = rup_changelogger_slugify_type($entry_type);
+
+            if ($entry_display === 'block' || $entry_slug === 'text') {
+                $text_block_total++;
+            }
+        }
+
+        $text_block_index = 0;
+
         foreach ($entries as $entry) {
             $type      = isset($entry['type']) ? $entry['type'] : 'Info';
             $text      = isset($entry['text']) ? $entry['text'] : '';
@@ -740,8 +753,30 @@ function rup_changelogger_render_changelog_timeline($versions, $atts = []) {
             $type_slug = rup_changelogger_slugify_type($type);
 
             if ($display === 'block' || $type_slug === 'text') {
-                $output .= '<li class="changelog-item changelog-text-block-item" data-type="' . esc_attr($type_slug) . '">';
-                $output .= '<div class="changelog-text-block">' . rup_changelogger_render_text_block($text) . '</div>';
+                $text_block_index++;
+                $text_block_from_end = max(1, $text_block_total - $text_block_index + 1);
+
+                $text_block_classes = [
+                    'changelog-item',
+                    'changelog-text-block-item',
+                    'changelog-text-block-item-' . $text_block_index,
+                    'changelog-text-block-from-top-' . $text_block_index,
+                    'changelog-text-block-from-bottom-' . $text_block_from_end,
+                    $text_block_index === 1 ? 'changelog-text-block-first' : '',
+                    $text_block_index === $text_block_total ? 'changelog-text-block-last' : '',
+                ];
+
+                $text_block_inner_classes = [
+                    'changelog-text-block',
+                    'changelog-text-block-' . $text_block_index,
+                    'changelog-text-block-from-top-' . $text_block_index,
+                    'changelog-text-block-from-bottom-' . $text_block_from_end,
+                    $text_block_index === 1 ? 'changelog-text-block-first' : '',
+                    $text_block_index === $text_block_total ? 'changelog-text-block-last' : '',
+                ];
+
+                $output .= '<li class="' . esc_attr(trim(implode(' ', array_filter($text_block_classes)))) . '" data-type="' . esc_attr($type_slug) . '" data-text-block-index="' . esc_attr($text_block_index) . '" data-text-block-from-bottom="' . esc_attr($text_block_from_end) . '">';
+                $output .= '<div class="' . esc_attr(trim(implode(' ', array_filter($text_block_inner_classes)))) . '">' . rup_changelogger_render_text_block($text) . '</div>';
                 $output .= '</li>';
                 continue;
             }
@@ -1045,6 +1080,14 @@ function rup_changelogger_enqueue_styles() {
     .changelog-text-block-item {
         grid-template-columns: 1fr;
     }
+
+    /*
+     * Text blocks also receive targeting classes per release, for example:
+     * .changelog-text-block-from-top-1
+     * .changelog-text-block-from-bottom-1
+     * .changelog-text-block-first
+     * .changelog-text-block-last
+     */
 
     .changelog-text-block {
         background: #f8f9fa;

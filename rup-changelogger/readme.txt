@@ -4,7 +4,7 @@ Donate link: https://reallyusefulplugins.com/donate
 Tags: Changelogger, Change log, plugins
 Requires at least: 6.5
 Tested up to: 7.0
-Stable tag: 1.30.1
+Stable tag: 2.0.0
 Requires PHP: 8.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -24,6 +24,31 @@ A quick and easy way to add changelog entries from a remote URL in WordPress
 Add a shortcode like this, this one dsplays this plugins changelog[rup_changelogger_timeline url='https://raw.githubusercontent.com/stingray82/rup-changelogs/refs/heads/main/rupchangelogger.txt']
 
 == Changelog ==
+= 2.0.0 June 2026 =
+
+Text: Version 2.0
+Version 2.0 introduces label-less text blocks, code blocks, and advanced release note styling.
+
+Code: Example
+Text:
+Your release note content goes here.
+URLs such as https://example.com/docs are linked automatically.
+EndText
+EndCode
+
+Text blocks support automatic URL linking and rich release note content.
+
+Code blocks render parser examples and documentation snippets without triggering changelog parsing.
+EndText
+
+New: Added label-less multiline Text blocks for plain text changelogs.
+New: Added Markdown Text block support using the ### Text heading.
+New: Added Code blocks for displaying parser examples and documentation snippets.
+New: Added automatic URL linking for https://, http://, and www. links inside Text blocks.
+New: Added per-release and global text block CSS targeting classes.
+Updated: Expanded documentation with Text and Code block examples.
+Fixed: Kept untagged lines ignored unless they appear inside an explicit Text block.
+
 = 1.30.1 May 2026 = 
 Added: Support for month and year version headers in plain changelogs.
 Added: Support for month and year version headers in Markdown changelogs.

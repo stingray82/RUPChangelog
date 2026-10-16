@@ -2,10 +2,10 @@
 /**
  * Plugin Name:       Changelogger
  * Description:       A simple shortcode generation for remote text files in to changelogs
- * Tested up to:      7.0.2
+ * Tested up to:      7.1.3
  * Requires at least: 6.5
  * Requires PHP:      8.0
- * Version:           2.0.1
+ * Version:           2.0.2
  * Author:            reallyusefulplugins.com
  * Author URI:        https://reallyusefulplugins.com
  * License:           GPL2
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
     exit; // Prevent direct access
 }
 
-define('RUP_Changelogger_VERSION', '2.0.1');
+define('RUP_Changelogger_VERSION', '2.0.2');
 
 // Include functions
  require_once __DIR__ . '/includes/functions.php';

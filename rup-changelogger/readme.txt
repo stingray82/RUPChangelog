@@ -2,7 +2,7 @@
 Tags: Changelogger, Change log, plugins
 Requires at least: 6.5
 Tested up to: 7.1.3
-Stable tag: 2.0.2
+Stable tag: 2.0.3
 Requires PHP: 8.0
 
 A quick and easy way to add changelog entries from a remote URL in WordPress
@@ -20,6 +20,9 @@ A quick and easy way to add changelog entries from a remote URL in WordPress
 Add a shortcode like this, this one dsplays this plugins changelog[rup_changelogger_timeline url='https://raw.githubusercontent.com/stingray82/rup-changelogs/refs/heads/main/rupchangelogger.txt']
 
 == Changelog ==
+= 2.0.3 17 October 2026 =
+Fixed: Plain text changelogs now accept both legacy Type: entries and bulleted * [Type] or * Type: entries.
+
 = 2.0.2 16 October 2026 =
 Updated: UUPD Dependency Updated to Version 2.1 Stable
 Updated: Deploy Methodology

@@ -26,6 +26,7 @@ function rup_changelogger_get_default_type_aliases() {
         'improve'       => 'Improvement',
         'improved'      => 'Improvement',
         'improvement'   => 'Improvement',
+        'improvements'  => 'Improvement',
         'performance'   => 'Performance',
         'security'      => 'Security',
         'deprecated'    => 'Deprecated',
@@ -663,19 +664,36 @@ function rup_changelogger_parse_plain_changelog($text) {
             continue;
         }
 
-        if (preg_match('/^([a-zA-Z\s]+):\s*(.*)$/', $normalized_line, $matches)) {
+        // Accept both legacy "New: ..." entries and list items such as
+        // "* [New] ..." or "* New: ..." (also with a dash or plus bullet).
+        $entry_line = $normalized_line;
+        $is_list_item = preg_match('/^(?:[-*+]\s+|\d+[.)]\s+)(.+)$/', $entry_line, $list_match) === 1;
+        if ($is_list_item) {
+            $entry_line = trim($list_match[1]);
+        }
+
+        if ($is_list_item && preg_match('/^\[([^\[\]]{1,24})\]:?\s*(.+)$/', $entry_line, $bracket_match)) {
+            $raw_type = strtolower(trim($bracket_match[1]));
+            $current_entries[] = [
+                'type' => isset($type_aliases[$raw_type]) ? $type_aliases[$raw_type] : ucwords($raw_type),
+                'text' => trim($bracket_match[2]),
+            ];
+            continue;
+        }
+
+        if (preg_match('/^([a-zA-Z\s]+):\s*(.*)$/', $entry_line, $matches)) {
             $raw_type   = strtolower(trim($matches[1]));
             $entry_text = trim($matches[2]);
             $normalized_type = isset($type_aliases[$raw_type]) ? $type_aliases[$raw_type] : ucwords($raw_type);
 
-            if (rup_changelogger_is_text_block_type($raw_type)) {
+            if (!$is_list_item && rup_changelogger_is_text_block_type($raw_type)) {
                 $in_text_block = true;
                 $text_block_heading = $entry_text;
                 $text_block_lines = [];
                 continue;
             }
 
-            if (rup_changelogger_is_code_block_type($raw_type)) {
+            if (!$is_list_item && rup_changelogger_is_code_block_type($raw_type)) {
                 $in_code_block = true;
                 $code_block_context = 'entry';
                 $code_block_heading = $entry_text;
@@ -690,6 +708,11 @@ function rup_changelogger_parse_plain_changelog($text) {
             $current_entries[] = [
                 'type' => $normalized_type,
                 'text' => $entry_text,
+            ];
+        } elseif ($is_list_item && $entry_line !== '') {
+            $current_entries[] = [
+                'type' => 'Info',
+                'text' => $entry_line,
             ];
         }
     }
